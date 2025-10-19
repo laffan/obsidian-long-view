@@ -150,28 +150,15 @@ export class MiniMapRenderer extends Component {
 				if (fragment.type === 'heading') {
 					const headingInfo = fragment.heading;
 
-					// Get the callout stack for this heading
+					// Get the callout stack for this heading and update wrappers to match
 					const headingStack = this.headingCalloutStacks.get(headingInfo.startOffset) || [];
+					const calloutContainer = updateCalloutWrappers(headingStack);
+					currentCalloutStack = headingStack.slice();
 
-					// Check if we need to update wrappers or create new section structure
-					const stackChanged =
-						headingStack.length !== currentCalloutStack.length ||
-						headingStack.some((callout, index) => callout.color !== currentCalloutStack[index]?.color);
-					const levelChanged = headingInfo.level !== currentLevel;
-
-					if (stackChanged || levelChanged || !flowEl) {
-
-						// Get the container (with updated callout wrappers)
-						// IMPORTANT: Pass headingStack BEFORE updating currentCalloutStack!
-						const calloutContainer = updateCalloutWrappers(headingStack);
-
-						// Update current stack AFTER updateCalloutWrappers has compared
-						currentCalloutStack = headingStack.slice();
-
-						// Create new section structure for this heading
-						currentLevel = headingInfo.level;
-						flowEl = createSectionStructure(calloutContainer, currentLevel);
-					}
+					// Always create a fresh section structure for each heading so sibling
+					// sections don't re-use the prior flow container.
+					currentLevel = headingInfo.level;
+					flowEl = createSectionStructure(calloutContainer, currentLevel);
 
 					// Update current heading level for next iteration
 					this.currentHeadingLevel = headingInfo.level;

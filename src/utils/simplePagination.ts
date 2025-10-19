@@ -1,4 +1,4 @@
-import { DocumentHeading, DocumentPage, DocumentCallout, parseFlags, parseCallout } from './documentParser';
+import { DocumentHeading, DocumentPage, parseFlags, parseHeadingsWithCallouts } from './documentParser';
 
 /**
  * Simple, fast pagination: 500 words base, reduced for images
@@ -57,7 +57,7 @@ export function paginateDocument(text: string): DocumentPage[] {
 		const endOffset = lastWord.index! + lastWord[0].length;
 		const content = text.substring(startOffset, endOffset);
 
-		const headings = collectHeadings(content, startOffset);
+		const headings = parseHeadingsWithCallouts(content, startOffset);
 		const flags = parseFlags(content, startOffset);
 
 		pages.push({
@@ -80,41 +80,4 @@ export function paginateDocument(text: string): DocumentPage[] {
 	}
 
 	return pages;
-}
-
-function collectHeadings(content: string, startOffset: number): DocumentHeading[] {
-	const headings: DocumentHeading[] = [];
-	const headingPattern = /^#{1,6}\s+.+$/gm;
-	let match: RegExpExecArray | null;
-
-	while ((match = headingPattern.exec(content)) !== null) {
-		const level = match[0].match(/^#+/)?.[0].length ?? 1;
-		const text = match[0].replace(/^#{1,6}\s*/, '').trim();
-		const headingOffset = startOffset + match.index;
-
-		// Check if the next non-empty line is a callout
-		const afterHeading = content.substring(match.index + match[0].length);
-		const nextLineMatch = afterHeading.match(/^\n*([^\n]*)/);
-		let callout: DocumentCallout | undefined = undefined;
-
-		if (nextLineMatch && nextLineMatch[1].trim()) {
-			const nextLine = nextLineMatch[1].trim();
-			if (nextLine.startsWith('> [!')) {
-				// Parse the callout
-				const parsedCallout = parseCallout(nextLine, headingOffset);
-				if (parsedCallout) {
-					callout = parsedCallout;
-				}
-			}
-		}
-
-		headings.push({
-			level,
-			text,
-			startOffset: headingOffset,
-			callout,
-		});
-	}
-
-	return headings;
 }

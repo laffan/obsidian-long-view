@@ -30,6 +30,46 @@ export interface DocumentPage {
 }
 
 /**
+ * Parse headings within the provided content and capture callout metadata
+ * relative to the supplied startOffset.
+ */
+export function parseHeadingsWithCallouts(content: string, startOffset = 0): DocumentHeading[] {
+	const headings: DocumentHeading[] = [];
+	const headingPattern = /^#{1,6}\s+.+$/gm;
+	let match: RegExpExecArray | null;
+
+	while ((match = headingPattern.exec(content)) !== null) {
+		const level = match[0].match(/^#+/)?.[0].length ?? 1;
+		const text = match[0].replace(/^#{1,6}\s*/, '').trim();
+		const headingOffset = startOffset + match.index;
+
+		// Look ahead to see whether the next non-empty line is a callout
+		const afterHeading = content.substring(match.index + match[0].length);
+		const nextLineMatch = afterHeading.match(/^\n*([^\n]*)/);
+		let callout: DocumentCallout | undefined = undefined;
+
+		if (nextLineMatch && nextLineMatch[1].trim()) {
+			const nextLine = nextLineMatch[1].trim();
+			if (nextLine.startsWith('> [!')) {
+				const parsedCallout = parseCallout(nextLine, headingOffset);
+				if (parsedCallout) {
+					callout = parsedCallout;
+				}
+			}
+		}
+
+		headings.push({
+			level,
+			text,
+			startOffset: headingOffset,
+			callout,
+		});
+	}
+
+	return headings;
+}
+
+/**
  * Parse document text into pages of approximately wordsPerPage words
  * Preserves original text structure including line breaks and formatting
  */

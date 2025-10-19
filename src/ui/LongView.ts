@@ -1,6 +1,7 @@
 import { ItemView, MarkdownView, TFile, WorkspaceLeaf } from 'obsidian';
-import { DocumentPage, getFirstWords, computeHeadingCalloutStacks } from '../utils/documentParser';
+import { DocumentPage, computeHeadingCalloutStacks } from '../utils/documentParser';
 import { paginateDocument } from '../utils/simplePagination';
+import { buildMinimapSections } from '../utils/minimapParser';
 import { MiniMapRenderer } from './miniMapRenderer';
 import { renderPageContent } from './simplePageRenderer';
 import { ViewMode } from '../settings';
@@ -11,6 +12,7 @@ export const LONG_VIEW_TYPE = 'long-view';
 export class LongView extends ItemView {
 	plugin: LongViewPlugin;
 	private pages: DocumentPage[] = [];
+	private minimapSections: DocumentPage[] = [];
 	private contentContainerEl: HTMLElement;
 	private currentFile: TFile | null = null;
 	private minimapRenderer: MiniMapRenderer | null = null;
@@ -220,12 +222,16 @@ export class LongView extends ItemView {
 		const content = await this.app.vault.read(activeFile);
 		this.documentLength = content.length;
 
-		// Simple, fast pagination
+		// Parse for both view modes independently so each gets optimal chunking
 		console.log('Long View: Parsing document...');
-		const startTime = Date.now();
+		const pagedStart = Date.now();
 		this.pages = paginateDocument(content);
-		const duration = Date.now() - startTime;
-		console.log(`Long View: Created ${this.pages.length} sections in ${duration}ms`);
+		const pagedDuration = Date.now() - pagedStart;
+		const minimapStart = Date.now();
+		this.minimapSections = buildMinimapSections(content);
+		const minimapDuration = Date.now() - minimapStart;
+		console.log(`Long View: Paged view created ${this.pages.length} sections in ${pagedDuration}ms`);
+		console.log(`Long View: Minimap view created ${this.minimapSections.length} section(s) in ${minimapDuration}ms`);
 
 		// Render based on current mode
 		if (this.currentMode === 'paged') {
@@ -247,7 +253,7 @@ export class LongView extends ItemView {
 			this.minimapRenderer = null;
 		}
 
-		if (this.pages.length === 0) {
+		if (this.minimapSections.length === 0) {
 			this.contentContainerEl.createDiv({
 				text: 'Document is empty',
 				cls: 'long-view-empty'
@@ -265,10 +271,10 @@ export class LongView extends ItemView {
 			numberSections: this.plugin.settings.numberSections,
 		});
 
-		await this.minimapRenderer.initialize(this.pages);
+		await this.minimapRenderer.initialize(this.minimapSections);
 		this.minimapRenderer.highlightHeadingForOffset(0);
 
-		console.log(`Long View: Rendered minimap with ${this.pages.length} sections`);
+		console.log(`Long View: Rendered minimap with ${this.minimapSections.length} section(s)`);
 	}
 
 	private async renderPaged(file: TFile): Promise<void> {
