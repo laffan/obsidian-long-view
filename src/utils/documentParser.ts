@@ -1,9 +1,16 @@
+export interface DocumentHeading {
+	level: number;
+	text: string;
+	startOffset: number;
+}
+
 export interface DocumentPage {
 	content: string;
 	wordCount: number;
 	startOffset: number;
 	endOffset: number;
 	pageNumber: number;
+	headings?: DocumentHeading[];
 }
 
 /**

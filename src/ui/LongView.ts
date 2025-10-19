@@ -1,6 +1,7 @@
-import { ItemView, MarkdownRenderer, MarkdownView, TFile, WorkspaceLeaf } from 'obsidian';
-import { parseDocumentIntoPages, DocumentPage } from '../utils/documentParser';
-import { calculateWordsPerPage } from '../settings';
+import { ItemView, MarkdownView, TFile, WorkspaceLeaf } from 'obsidian';
+import { DocumentPage } from '../utils/documentParser';
+import { paginateDocument } from '../utils/simplePagination';
+import { MiniMapRenderer } from './miniMapRenderer';
 import type LongViewPlugin from '../main';
 
 export const LONG_VIEW_TYPE = 'long-view';
@@ -8,9 +9,13 @@ export const LONG_VIEW_TYPE = 'long-view';
 export class LongView extends ItemView {
 	plugin: LongViewPlugin;
 	private pages: DocumentPage[] = [];
-	private currentZoom: number = 15;
 	private contentContainerEl: HTMLElement;
 	private currentFile: TFile | null = null;
+	private minimapRenderer: MiniMapRenderer | null = null;
+	private editorScrollEl: HTMLElement | null = null;
+	private activeLeaf: WorkspaceLeaf | null = null;
+	private documentLength = 0;
+	private readonly onEditorScroll = () => this.updateActiveHeading();
 
 	constructor(leaf: WorkspaceLeaf, plugin: LongViewPlugin) {
 		super(leaf);
@@ -37,24 +42,6 @@ export class LongView extends ItemView {
 		// Create main content area
 		this.contentContainerEl = container.createDiv({ cls: 'long-view-content' });
 
-		// Create settings button at the bottom
-		const controlsContainer = container.createDiv({ cls: 'long-view-controls' });
-
-		const settingsButton = controlsContainer.createEl('button', {
-			cls: 'long-view-settings-button',
-			attr: {
-				'aria-label': 'Long View Settings'
-			}
-		});
-		settingsButton.innerHTML = '⚙️';
-
-		settingsButton.addEventListener('click', () => {
-			this.showSettingsMenu(settingsButton);
-		});
-
-		// Initialize zoom from settings
-		this.currentZoom = this.plugin.settings.defaultZoom;
-
 		// Initial render
 		await this.updateView();
 
@@ -74,7 +61,11 @@ export class LongView extends ItemView {
 	}
 
 	async onClose(): Promise<void> {
-		// Cleanup if needed
+		this.detachEditorScrollHandler();
+		if (this.minimapRenderer) {
+			this.minimapRenderer.unload();
+			this.minimapRenderer = null;
+		}
 	}
 
 	private async updateView(): Promise<void> {
@@ -87,26 +78,33 @@ export class LongView extends ItemView {
 				cls: 'long-view-empty'
 			});
 			this.currentFile = null;
+			this.documentLength = 0;
 			return;
 		}
 
 		this.currentFile = activeFile;
 		const content = await this.app.vault.read(activeFile);
+		this.documentLength = content.length;
 
-		// Calculate words per page based on current settings
-		const wordsPerPage = calculateWordsPerPage(
-			this.plugin.settings.fontSize,
-			this.plugin.settings.paddingVertical,
-			this.plugin.settings.paddingHorizontal
-		);
+		// Simple, fast pagination
+		console.log('Long View: Parsing document...');
+		const startTime = Date.now();
+		this.pages = paginateDocument(content);
+		const duration = Date.now() - startTime;
+		console.log(`Long View: Created ${this.pages.length} sections in ${duration}ms`);
 
-		this.pages = parseDocumentIntoPages(content, wordsPerPage);
-
-		await this.renderPages(activeFile);
+		await this.renderMinimap(activeFile);
+		this.bindToActiveEditor();
 	}
 
-	private async renderPages(file: TFile): Promise<void> {
+	private async renderMinimap(file: TFile): Promise<void> {
+		this.detachEditorScrollHandler();
 		this.contentContainerEl.empty();
+
+		if (this.minimapRenderer) {
+			this.minimapRenderer.unload();
+			this.minimapRenderer = null;
+		}
 
 		if (this.pages.length === 0) {
 			this.contentContainerEl.createDiv({
@@ -116,227 +114,220 @@ export class LongView extends ItemView {
 			return;
 		}
 
-		const grid = this.contentContainerEl.createDiv({ cls: 'long-view-grid' });
+		this.minimapRenderer = new MiniMapRenderer({
+			app: this.app,
+			containerEl: this.contentContainerEl,
+			sourcePath: file.path,
+			onSectionClick: (offset) => this.scrollToOffset(offset),
+			onHeadingClick: (offset) => this.scrollToOffset(offset),
+		});
 
-		for (const page of this.pages) {
-			const pageEl = grid.createDiv({ cls: 'long-view-page' });
-			pageEl.setAttribute('data-page', String(page.pageNumber));
+		await this.minimapRenderer.initialize(this.pages);
+		this.minimapRenderer.highlightHeadingForOffset(0);
 
-			// Content container
-			const contentEl = pageEl.createDiv({ cls: 'long-view-page-content' });
-
-			// Render markdown content using Obsidian's markdown renderer
-			try {
-				await MarkdownRenderer.render(
-					this.app,
-					page.content,
-					contentEl,
-					file.path,
-					this
-				);
-				console.log(`Long View: Rendered page ${page.pageNumber + 1}`);
-			} catch (error) {
-				console.error('Long View: Error rendering markdown:', error);
-				// Fallback to plain text if rendering fails
-				contentEl.setText(page.content);
-			}
-
-			// Make page clickable to scroll to location in editor
-			pageEl.addEventListener('click', () => {
-				this.scrollToPage(page);
-			});
-		}
-
-		this.updateZoom();
+		console.log(`Long View: Rendered minimap with ${this.pages.length} sections`);
 	}
 
-	private showSettingsMenu(buttonEl: HTMLElement): void {
-		const menu = document.createElement('div');
-		menu.addClass('long-view-settings-menu');
-
-		// Zoom control
-		const zoomContainer = menu.createDiv({ cls: 'long-view-setting-item' });
-		const zoomLabel = zoomContainer.createSpan({
-			cls: 'long-view-setting-label',
-			text: `Zoom: ${this.currentZoom}%`
-		});
-		const zoomSlider = zoomContainer.createEl('input', {
-			type: 'range',
-			cls: 'long-view-setting-slider',
-			attr: {
-				min: '5',
-				max: '30',
-				value: String(this.currentZoom),
-			},
-		});
-		zoomSlider.addEventListener('input', (e) => {
-			const target = e.target as HTMLInputElement;
-			this.currentZoom = parseInt(target.value);
-			zoomLabel.setText(`Zoom: ${this.currentZoom}%`);
-			this.plugin.settings.defaultZoom = this.currentZoom;
-			this.plugin.saveSettings();
-			this.updateZoom();
-		});
-
-		// Font size control
-		const fontSizeContainer = menu.createDiv({ cls: 'long-view-setting-item' });
-		fontSizeContainer.createSpan({
-			cls: 'long-view-setting-label',
-			text: 'Font Size (px)'
-		});
-		const fontSizeInput = fontSizeContainer.createEl('input', {
-			type: 'number',
-			cls: 'long-view-setting-number',
-			attr: {
-				min: '12',
-				max: '48',
-				value: String(this.plugin.settings.fontSize),
-			},
-		});
-		fontSizeInput.addEventListener('change', (e) => {
-			const target = e.target as HTMLInputElement;
-			const value = Math.max(12, Math.min(48, parseInt(target.value) || 25));
-			this.plugin.settings.fontSize = value;
-			target.value = String(value);
-			this.plugin.saveSettings();
-			this.applyStyleSettings();
-			this.updateView();
-		});
-
-		// Padding control
-		const paddingContainer = menu.createDiv({ cls: 'long-view-setting-item' });
-		paddingContainer.createSpan({
-			cls: 'long-view-setting-label',
-			text: 'Padding (px)'
-		});
-		const paddingInput = paddingContainer.createEl('input', {
-			type: 'number',
-			cls: 'long-view-setting-number',
-			attr: {
-				min: '50',
-				max: '400',
-				step: '10',
-				value: String(this.plugin.settings.paddingVertical),
-			},
-		});
-		paddingInput.addEventListener('change', (e) => {
-			const target = e.target as HTMLInputElement;
-			const value = Math.max(50, Math.min(400, parseInt(target.value) || 250));
-			this.plugin.settings.paddingVertical = value;
-			this.plugin.settings.paddingHorizontal = Math.floor(value * 0.8); // Keep 5:4 ratio
-			target.value = String(value);
-			this.plugin.saveSettings();
-			this.applyStyleSettings();
-			this.updateView();
-		});
-
-		// Position menu above button
-		const rect = buttonEl.getBoundingClientRect();
-		menu.style.position = 'fixed';
-		menu.style.bottom = `${window.innerHeight - rect.top + 10}px`;
-		menu.style.left = `${rect.left}px`;
-
-		document.body.appendChild(menu);
-
-		// Close menu when clicking outside
-		const closeMenu = (e: MouseEvent) => {
-			if (!menu.contains(e.target as Node) && e.target !== buttonEl) {
-				menu.remove();
-				document.removeEventListener('click', closeMenu);
-			}
-		};
-
-		// Delay adding the listener so this click doesn't immediately close it
-		setTimeout(() => {
-			document.addEventListener('click', closeMenu);
-		}, 0);
-	}
-
-	private applyStyleSettings(): void {
-		const grid = this.contentContainerEl.querySelector('.long-view-grid') as HTMLElement;
-		if (!grid) return;
-
-		const pages = grid.querySelectorAll('.long-view-page-content') as NodeListOf<HTMLElement>;
-		pages.forEach((page) => {
-			page.style.fontSize = `${this.plugin.settings.fontSize}px`;
-			page.style.padding = `${this.plugin.settings.paddingVertical}px ${this.plugin.settings.paddingHorizontal}px`;
-		});
-	}
-
-	private updateZoom(): void {
-		const grid = this.contentContainerEl.querySelector('.long-view-grid') as HTMLElement;
-		if (!grid) return;
-
-		// Apply transform scale to the entire grid (camera zoom effect)
-		const scale = this.currentZoom / 100;
-		grid.style.transform = `scale(${scale})`;
-		grid.style.transformOrigin = 'top left';
-
-		// Calculate how many columns can fit based on zoom level
-		// At 30% zoom, pages are effectively 382.5px wide
-		// At 5% zoom, pages are effectively 63.75px wide
-		const pageWidth = 1275;
-		const gap = 100;
-		const containerWidth = this.contentContainerEl.clientWidth - 40; // minus padding
-
-		// Calculate effective page width after scaling
-		const effectivePageWidth = pageWidth * scale;
-		const effectiveGap = gap * scale;
-
-		// Calculate how many columns fit
-		const columnsToFit = Math.max(1, Math.floor((containerWidth + effectiveGap) / (effectivePageWidth + effectiveGap)));
-
-		// Update grid to show that many columns
-		grid.style.gridTemplateColumns = `repeat(${columnsToFit}, ${pageWidth}px)`;
-
-		console.log(`Long View: Zoom ${this.currentZoom}%, fitting ${columnsToFit} columns (effective width: ${effectivePageWidth}px)`);
-	}
-
-	private scrollToPage(page: DocumentPage): void {
+	private scrollToOffset(offset: number): void {
 		if (!this.currentFile) {
 			console.log('Long View: No current file');
 			return;
 		}
 
-		// Find a markdown view with the same file
-		const leaves = this.app.workspace.getLeavesOfType('markdown');
-		let targetLeaf = null;
-
-		for (const leaf of leaves) {
-			const view = leaf.view as MarkdownView;
-			if (view.file && view.file.path === this.currentFile.path) {
-				targetLeaf = leaf;
-				break;
-			}
-		}
-
-		if (!targetLeaf) {
-			console.log('Long View: No markdown view found for file:', this.currentFile.path);
+		const context = this.findMarkdownContext();
+		if (!context) {
+			console.log('Long View: No markdown view found for file:', this.currentFile?.path);
 			return;
 		}
 
-		const view = targetLeaf.view as MarkdownView;
+		const { leaf, view } = context;
 		const editor = view.editor;
 		if (!editor) {
 			console.log('Long View: No editor found in markdown view');
 			return;
 		}
 
-		// Calculate line number from character offset
+		// Get full content
 		const content = editor.getValue();
-		const textBeforePage = content.substring(0, page.startOffset);
-		const lineNumber = textBeforePage.split('\n').length - 1;
 
-		console.log(`Long View: Scrolling to page ${page.pageNumber + 1}, line ${lineNumber}`);
+		// Find the paragraph that contains the start position
+		const paragraphStart = this.findParagraphStart(content, offset);
 
-		// Scroll to the line
+		// Calculate line number from character offset
+		const textBeforeParagraph = content.substring(0, paragraphStart);
+		const lineNumber = textBeforeParagraph.split('\n').length - 1;
+
+		console.log(`Long View: Scrolling to offset ${offset}, paragraph at line ${lineNumber}`);
+
+		// Scroll to the paragraph and align it near the top of the editor
 		editor.setCursor({ line: lineNumber, ch: 0 });
 		editor.scrollIntoView(
 			{ from: { line: lineNumber, ch: 0 }, to: { line: lineNumber, ch: 0 } },
-			true
+			false
 		);
 
+		const cm = (editor as any).cm;
+		if (cm && typeof cm.charCoords === 'function' && typeof cm.scrollTo === 'function') {
+			window.requestAnimationFrame(() => {
+				const coords = cm.charCoords({ line: lineNumber, ch: 0 }, 'local');
+				cm.scrollTo(null, coords.top);
+			});
+		}
+
 		// Reveal and focus the markdown view
-		this.app.workspace.revealLeaf(targetLeaf);
+		this.app.workspace.revealLeaf(leaf);
+		this.bindToActiveEditor();
+		this.minimapRenderer?.highlightHeadingForOffset(offset);
+	}
+
+	private bindToActiveEditor(): void {
+		this.detachEditorScrollHandler();
+
+		if (!this.minimapRenderer) {
+			return;
+		}
+
+		const context = this.findMarkdownContext();
+		if (!context) {
+			return;
+		}
+
+		this.activeLeaf = context.leaf;
+		const scrollElement = this.getScrollElementForView(context.view);
+		if (!scrollElement) {
+			console.log('Long View: Unable to locate scroll element for markdown view');
+			return;
+		}
+
+		this.editorScrollEl = scrollElement;
+			this.editorScrollEl.addEventListener('scroll', this.onEditorScroll, { passive: true });
+			this.updateActiveHeading();
+		}
+
+	private detachEditorScrollHandler(): void {
+		if (this.editorScrollEl) {
+			this.editorScrollEl.removeEventListener('scroll', this.onEditorScroll);
+			this.editorScrollEl = null;
+		}
+
+		this.activeLeaf = null;
+	}
+
+	private findMarkdownContext(): { leaf: WorkspaceLeaf; view: MarkdownView } | null {
+		if (!this.currentFile) {
+			return null;
+		}
+
+		const leaves = this.app.workspace.getLeavesOfType('markdown');
+		for (const leaf of leaves) {
+			const view = leaf.view as MarkdownView;
+			if (view.file && view.file.path === this.currentFile.path) {
+				return { leaf, view };
+			}
+		}
+
+		return null;
+	}
+
+	private getScrollElementForView(view: MarkdownView): HTMLElement | null {
+		const roots: HTMLElement[] = [];
+		if (view.contentEl) roots.push(view.contentEl);
+		if (view.containerEl && view.containerEl !== view.contentEl) {
+			roots.push(view.containerEl);
+		}
+
+		for (const root of roots) {
+			const livePreviewScroller = root.querySelector<HTMLElement>('.cm-scroller');
+			if (livePreviewScroller) {
+				return livePreviewScroller;
+			}
+
+			const readingScroller = root.querySelector<HTMLElement>('.markdown-preview-view');
+			if (readingScroller) {
+				return readingScroller;
+			}
+		}
+
+		return null;
+	}
+
+	private updateActiveHeading(): void {
+		if (!this.minimapRenderer) {
+			return;
+		}
+
+		const context = this.findMarkdownContext();
+		if (!context) {
+			this.minimapRenderer.highlightHeadingForOffset(0);
+			return;
+		}
+
+		const editor = context.view.editor;
+		if (!editor) {
+			this.minimapRenderer.highlightHeadingForOffset(0);
+			return;
+		}
+
+		try {
+			const anyEditor = editor as any;
+			const viewport = anyEditor.getViewport?.();
+			const posToOffset: ((pos: { line: number; ch: number }) => number) | undefined =
+				typeof anyEditor.posToOffset === 'function'
+					? anyEditor.posToOffset.bind(anyEditor)
+					: undefined;
+			if (viewport && posToOffset) {
+				const topLine = viewport.from ?? 0;
+				const offset = posToOffset({ line: topLine, ch: 0 });
+				this.minimapRenderer.highlightHeadingForOffset(offset);
+				return;
+			}
+		} catch (error) {
+			console.warn('Long View: Failed to derive viewport from editor', error);
+		}
+
+		const scrollEl = this.editorScrollEl;
+		if (!scrollEl || this.documentLength === 0) {
+			this.minimapRenderer.highlightHeadingForOffset(0);
+			return;
+		}
+
+		const maxScroll = Math.max(1, scrollEl.scrollHeight - scrollEl.clientHeight);
+		const ratio = maxScroll > 0 ? scrollEl.scrollTop / maxScroll : 0;
+		const approxOffset = Math.min(this.documentLength, Math.floor(this.documentLength * ratio));
+		this.minimapRenderer.highlightHeadingForOffset(approxOffset);
+	}
+
+	/**
+	 * Find the start of the paragraph that contains the given offset
+	 */
+	private findParagraphStart(content: string, offset: number): number {
+		// Look backwards from offset to find paragraph boundary
+		// Paragraph boundaries are double newlines or start of document
+
+		let pos = offset;
+
+		// Skip any leading whitespace at the offset position
+		while (pos > 0 && /\s/.test(content[pos - 1])) {
+			pos--;
+		}
+
+		// Look for double newline or start of content
+		while (pos > 0) {
+			// Check for double newline (paragraph break)
+			if (content[pos - 1] === '\n' && content[pos - 2] === '\n') {
+				// Found paragraph break, return position after the double newline
+				return pos;
+			}
+
+			// Check for heading (line starting with #)
+			if (pos > 0 && content[pos - 1] === '\n' && content[pos] === '#') {
+				return pos;
+			}
+
+			pos--;
+		}
+
+		// Reached start of document
+		return 0;
 	}
 }

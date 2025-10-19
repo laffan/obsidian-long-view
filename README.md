@@ -1,94 +1,58 @@
-# Obsidian Sample Plugin
+# Long View – Obsidian Minimap & Outline
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+Long View gives you a dedicated pane that acts like a hybrid between a code minimap and a markdown outline. Instead of paging through large thumbnails, you get a continuous, clickable overview of the entire note that stays in sync with the active editor.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## What You See
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+- **Document minimap** – Every paragraph renders as tiny text while headings stay readable, numbered (1, 1.1, 1.1.1 …), and occupy the full available width.
+- **Live outline** – The heading that matches your current scroll position is highlighted automatically.
+- **Embedded media** – Markdown images (standard links or wikilinks) show up as scaled thumbnails right inside the minimap stream.
+- **Accurate navigation** – Clicking a heading, image, or paragraph jumps the main editor so the relevant heading lands at the top of the viewport.
 
-## First time developing plugins?
+## Core Features
 
-Quick starting guide for new plugin devs:
+- ✅ Continuous minimap instead of page thumbnails.
+- ✅ Auto-numbered headings with configurable styling (H1 underlined, all headings at 12 px).
+- ✅ Tiny body text (5 % scale → ~2 px font) capped to a 100 px column for readability.
+- ✅ Image resolution that understands Obsidian vault paths, wikilinks, and external URLs.
+- ✅ Bi-directional sync between the minimap and the active markdown editor.
+- ✅ Works with both Live Preview and Reading modes.
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+## Using Long View
 
-## Releasing new releases
+1. Open any markdown file in Obsidian.
+2. Activate the Long View pane via the ribbon icon or the command palette (`Long View: Open Long View`).
+3. Scroll: the minimap highlights the heading that matches your editor’s viewport.
+4. Click any heading, paragraph, or image in the minimap to jump the editor—Long View keeps the heading aligned at the top of the window.
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+The minimap refreshes automatically when you edit the note or switch files.
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+## Implementation Snapshot
 
-## Adding your plugin to the community plugin list
+| File | Responsibility |
+| ---- | -------------- |
+| `src/ui/LongView.ts` | Manages the workspace pane, keeps the minimap in sync with the active editor, and handles click / scroll coordination. |
+| `src/ui/miniMapRenderer.ts` | Tokenises the document into headings, text fragments, and images; renders the minimap; resolves image sources; tracks active headings. |
+| `src/utils/simplePagination.ts` | Creates lightweight “sections” so the minimap can chunk content without measuring full layouts. |
+| `styles.css` | Defines the minimap presentation (heading sizes, paragraph column width, image thumbnails, highlight state). |
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+Older components (`virtualScroller`, `canvasRenderer`, adaptive pagination, etc.) are retained for reference but the current experience is powered by the files above.
 
-## How to use
+## Building & Installing
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
-
-## Manually installing the plugin
-
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint ./src/`
-
-## Funding URL
-
-You can include funding URLs where people who use your plugin can financially support it.
-
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
-
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
+```bash
+npm install
+npm run build
 ```
 
-If you have multiple URLs, you can also do:
+Copy the plugin folder (with `main.js`, `manifest.json`, and `styles.css`) into your vault’s `.obsidian/plugins` directory, reload Obsidian, then enable **Long View** from Settings → Community Plugins.
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
-```
+## Tips & Troubleshooting
 
-## API Documentation
+- **Images missing?** Ensure the linked file exists in your vault or use a full URL. Long View resolves standard markdown links, wikilinks, and remote URLs.
+- **Scroll feels off?** Long View will fall back to proportional scrolling if the editor API can’t expose the viewport; focusing the editor usually restores precise alignment.
+- **Still want thumbnails?** The legacy grid code is still in the repo—you can branch from earlier commits if you prefer that layout.
 
-See https://github.com/obsidianmd/obsidian-api
+## License
+
+MIT
