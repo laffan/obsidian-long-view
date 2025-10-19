@@ -3,7 +3,15 @@
  * Renders headings and basic text without full markdown processing
  */
 
-export function renderPageContent(content: string, containerEl: HTMLElement, zoomLevel: number = 15): void {
+import { App, TFile } from 'obsidian';
+
+export function renderPageContent(
+	content: string,
+	containerEl: HTMLElement,
+	zoomLevel: number = 15,
+	app?: App,
+	sourcePath?: string
+): void {
 	const lines = content.split('\n');
 
 	for (const line of lines) {
@@ -17,10 +25,8 @@ export function renderPageContent(content: string, containerEl: HTMLElement, zoo
 		// Check if line is a standalone flag
 		const standaloneFlag = /^(==(\w+):[^=]+==|%%[^%]+%%)$/.test(trimmed);
 		if (standaloneFlag) {
-			// At high zoom, render as bar; at low zoom, skip (rendered as badge)
-			if (zoomLevel >= 20) {
-				renderStandaloneFlag(trimmed, containerEl);
-			}
+			// Render as bar at all zoom levels
+			renderStandaloneFlag(trimmed, containerEl, zoomLevel);
 			continue;
 		}
 
@@ -35,8 +41,12 @@ export function renderPageContent(content: string, containerEl: HTMLElement, zoo
 			continue;
 		}
 
-		// Check for images - skip them for performance
-		if (/^!\[/.test(trimmed)) {
+		// Check for images
+		const imageMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)|^!\[\[([^|\]]+)(?:\|([^\]]*))?\]\]$/);
+		if (imageMatch) {
+			if (app && sourcePath) {
+				renderImage(imageMatch, containerEl, app, sourcePath);
+			}
 			continue;
 		}
 
@@ -46,7 +56,7 @@ export function renderPageContent(content: string, containerEl: HTMLElement, zoo
 	}
 }
 
-function renderStandaloneFlag(flagText: string, containerEl: HTMLElement): void {
+function renderStandaloneFlag(flagText: string, containerEl: HTMLElement, zoomLevel: number): void {
 	// Extract message and determine color
 	let message = flagText;
 	let color = '#888888';
@@ -66,7 +76,13 @@ function renderStandaloneFlag(flagText: string, containerEl: HTMLElement): void 
 	// Create a full-width bar
 	const bar = containerEl.createDiv({ cls: 'long-view-flag-bar' });
 	bar.style.backgroundColor = color;
-	bar.setText(message);
+
+	// At low zoom, show just the bar without text for cleaner look, but make it taller
+	if (zoomLevel >= 20) {
+		bar.setText(message);
+	} else {
+		bar.addClass('long-view-flag-bar-low-zoom');
+	}
 }
 
 function renderInlineFormatting(text: string, textContainerEl: HTMLElement, pageContainerEl: HTMLElement, zoomLevel: number): void {
@@ -120,10 +136,6 @@ function renderInlineFormatting(text: string, textContainerEl: HTMLElement, page
 	}
 
 	// Render the parts
-	// At high zoom (>= 20%), show flags as full-width bars
-	// At low zoom (< 20%), don't render inline (they're shown as badges)
-	const showInlineBars = zoomLevel >= 20;
-
 	// First, render just the text in the text container
 	for (const part of parts) {
 		if (part.type === 'text') {
@@ -131,23 +143,27 @@ function renderInlineFormatting(text: string, textContainerEl: HTMLElement, page
 		}
 	}
 
-	// Then, if we're at high zoom, add flag bars after the text element
-	if (showInlineBars) {
-		for (const part of parts) {
-			if (part.type === 'flag' && part.color) {
-				// Extract the message from the flag
-				let message = part.content;
-				// Remove the markup to get clean message
-				if (message.startsWith('==')) {
-					message = message.replace(/^==\w+:\s*/, '').replace(/==$/, '').trim();
-				} else if (message.startsWith('%%')) {
-					message = message.replace(/^%%\s*/, '').replace(/%%$/, '').trim();
-				}
+	// Then, add flag bars after the text element (at all zoom levels)
+	for (const part of parts) {
+		if (part.type === 'flag' && part.color) {
+			// Extract the message from the flag
+			let message = part.content;
+			// Remove the markup to get clean message
+			if (message.startsWith('==')) {
+				message = message.replace(/^==\w+:\s*/, '').replace(/==$/, '').trim();
+			} else if (message.startsWith('%%')) {
+				message = message.replace(/^%%\s*/, '').replace(/%%$/, '').trim();
+			}
 
-				// Create a full-width bar in the page container (not inside the p/h tag)
-				const bar = pageContainerEl.createDiv({ cls: 'long-view-flag-bar' });
-				bar.style.backgroundColor = part.color;
+			// Create a full-width bar in the page container (not inside the p/h tag)
+			const bar = pageContainerEl.createDiv({ cls: 'long-view-flag-bar' });
+			bar.style.backgroundColor = part.color;
+
+			// At low zoom, show just the bar without text for cleaner look, but make it taller
+			if (zoomLevel >= 20) {
 				bar.setText(message);
+			} else {
+				bar.addClass('long-view-flag-bar-low-zoom');
 			}
 		}
 	}
@@ -165,4 +181,72 @@ function getFlagColor(type: string): string {
 		'COMMENT': '#888888',   // Gray
 	};
 	return colorMap[typeUpper] || '#888888';
+}
+
+function renderImage(match: RegExpMatchArray, containerEl: HTMLElement, app: App, sourcePath: string): void {
+	let link = '';
+	let alt = '';
+
+	if (match[2]) {
+		// Markdown format: ![alt](link)
+		alt = match[1] || '';
+		link = parseMarkdownImageLink(match[2]);
+	} else {
+		// Wikilink format: ![[link|alt]]
+		link = match[3]?.trim() ?? '';
+		alt = (match[4] ?? '').trim() || link;
+	}
+
+	const src = resolveImageSrc(link, app, sourcePath);
+	if (src) {
+		const imgEl = containerEl.createEl('img');
+		imgEl.src = src;
+		imgEl.alt = alt || link;
+	}
+}
+
+function parseMarkdownImageLink(spec: string): string {
+	let trimmed = spec.trim();
+	if (trimmed.startsWith('<') && trimmed.endsWith('>')) {
+		trimmed = trimmed.slice(1, -1).trim();
+	}
+
+	const titleMatch = trimmed.match(/\s+(".*"|'.*'|\(.*\))$/);
+	if (titleMatch && titleMatch.index !== undefined) {
+		trimmed = trimmed.substring(0, titleMatch.index).trim();
+	}
+
+	return trimmed;
+}
+
+function resolveImageSrc(link: string, app: App, sourcePath: string): string | null {
+	let trimmed = link.trim();
+	if (!trimmed) {
+		return null;
+	}
+
+	if (/^(app:|https?:|data:)/i.test(trimmed)) {
+		return trimmed;
+	}
+
+	const normalized = trimmed.replace(/\\/g, '/');
+	const [pathPart] = normalized.split('#');
+	const targetFile = app.metadataCache.getFirstLinkpathDest(pathPart, sourcePath);
+	if (targetFile instanceof TFile) {
+		return app.vault.getResourcePath(targetFile);
+	}
+
+	// Attempt to resolve standard markdown links relative to vault root
+	const fallbackFile = app.metadataCache.getFirstLinkpathDest(trimmed, sourcePath);
+	if (fallbackFile instanceof TFile) {
+		return app.vault.getResourcePath(fallbackFile);
+	}
+
+	// Last resort: return encoded original link so external paths still render
+	try {
+		return encodeURI(trimmed);
+	} catch (error) {
+		console.warn('SimplePageRenderer: Failed to encode image link', trimmed, error);
+		return trimmed;
+	}
 }

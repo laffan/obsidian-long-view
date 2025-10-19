@@ -22,6 +22,7 @@ export class LongView extends ItemView {
 	private currentZoom: number = 15;
 	private modeButtonsEl: HTMLElement | null = null;
 	private zoomControlEl: HTMLElement | null = null;
+	private paragraphToggleEl: HTMLElement | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: LongViewPlugin) {
 		super(leaf);
@@ -85,6 +86,13 @@ export class LongView extends ItemView {
 			},
 		});
 
+		// Paragraph toggle (only visible in minimap mode)
+		this.paragraphToggleEl = headerEl.createDiv({ cls: 'long-view-paragraph-toggle' });
+		const paragraphToggleBtn = this.paragraphToggleEl.createEl('button', {
+			text: 'Show paragraphs',
+			cls: 'long-view-toggle-button',
+		});
+
 		// Initialize mode from settings
 		this.currentMode = this.plugin.settings.viewMode;
 		this.currentZoom = this.plugin.settings.defaultZoom;
@@ -94,8 +102,21 @@ export class LongView extends ItemView {
 			minimapBtn.toggleClass('is-active', this.currentMode === 'minimap');
 			pagedBtn.toggleClass('is-active', this.currentMode === 'paged');
 			this.zoomControlEl?.toggleClass('is-visible', this.currentMode === 'paged');
+			this.paragraphToggleEl?.toggleClass('is-visible', this.currentMode === 'minimap');
 		};
+
+		const updateParagraphToggleUI = () => {
+			if (this.plugin.settings.showParagraphsInMinimap) {
+				paragraphToggleBtn.addClass('is-active');
+				paragraphToggleBtn.setText('Hide paragraphs');
+			} else {
+				paragraphToggleBtn.removeClass('is-active');
+				paragraphToggleBtn.setText('Show paragraphs');
+			}
+		};
+
 		updateModeUI();
+		updateParagraphToggleUI();
 
 		// Mode button handlers
 		minimapBtn.addEventListener('click', () => {
@@ -122,6 +143,14 @@ export class LongView extends ItemView {
 			this.plugin.settings.defaultZoom = this.currentZoom;
 			this.plugin.saveSettings();
 			this.updateZoom();
+		});
+
+		// Paragraph toggle handler
+		paragraphToggleBtn.addEventListener('click', () => {
+			this.plugin.settings.showParagraphsInMinimap = !this.plugin.settings.showParagraphsInMinimap;
+			this.plugin.saveSettings();
+			updateParagraphToggleUI();
+			this.updateView();
 		});
 
 		// Refresh button handler
@@ -213,6 +242,7 @@ export class LongView extends ItemView {
 			sourcePath: file.path,
 			onSectionClick: (offset) => this.scrollToOffset(offset),
 			onHeadingClick: (offset) => this.scrollToOffset(offset),
+			showParagraphs: this.plugin.settings.showParagraphsInMinimap,
 		});
 
 		await this.minimapRenderer.initialize(this.pages);
@@ -263,7 +293,7 @@ export class LongView extends ItemView {
 
 			// Use simple fast renderer instead of full MarkdownRenderer
 			try {
-				renderPageContent(page.content, contentEl, this.currentZoom);
+				renderPageContent(page.content, contentEl, this.currentZoom, this.app, file.path);
 			} catch (error) {
 				console.error('Long View: Error rendering page:', error);
 				// Fallback to plain text if rendering fails
@@ -278,22 +308,6 @@ export class LongView extends ItemView {
 				}
 				this.scrollToOffset(page.startOffset);
 			});
-
-			// Render flags for this page - show 50px bars at low zoom (< 20%)
-			if (page.flags && page.flags.length > 0 && this.currentZoom < 20) {
-				const flagsContainer = pageEl.createDiv({ cls: 'long-view-page-flags-low-zoom' });
-				for (const flag of page.flags) {
-					// Create a 50px colored bar
-					const flagEl = flagsContainer.createDiv({ cls: 'long-view-page-flag-bar-small' });
-					flagEl.style.backgroundColor = flag.color;
-
-					// Make flag clickable
-					flagEl.addEventListener('click', (event) => {
-						event.stopPropagation();
-						this.scrollToOffset(flag.startOffset);
-					});
-				}
-			}
 		}
 
 		// Update column layout after content is rendered
@@ -361,63 +375,41 @@ export class LongView extends ItemView {
 			return;
 		}
 
-		// Get full content
-		const content = editor.getValue();
+		// Use editor's built-in offsetToPos method for accurate conversion
+		let targetPos: { line: number; ch: number };
 
-		// Find the paragraph that contains the start position
-		const paragraphStart = this.findParagraphStart(content, offset);
+		// Check if editor has offsetToPos method
+		if (typeof (editor as any).offsetToPos === 'function') {
+			targetPos = (editor as any).offsetToPos(offset);
+			console.log(`Long View: Using offsetToPos - scrolling to offset ${offset} -> line ${targetPos.line}, ch ${targetPos.ch}`);
+		} else {
+			// Fallback: manually convert offset to position
+			const content = editor.getValue();
+			let currentOffset = 0;
+			let line = 0;
+			let ch = 0;
 
-		// Calculate line number from character offset
-		const textBeforeParagraph = content.substring(0, paragraphStart);
-		const lineNumber = textBeforeParagraph.split('\n').length - 1;
+			const lines = content.split('\n');
+			for (let i = 0; i < lines.length; i++) {
+				const lineLength = lines[i].length;
+				if (currentOffset + lineLength >= offset) {
+					line = i;
+					ch = offset - currentOffset;
+					break;
+				}
+				currentOffset += lineLength + 1; // +1 for newline
+			}
 
-		console.log(`Long View: Scrolling to offset ${offset}, paragraph at line ${lineNumber}`);
+			targetPos = { line, ch };
+			console.log(`Long View: Manual conversion - scrolling to offset ${offset} -> line ${targetPos.line}, ch ${targetPos.ch}`);
+		}
 
 		// Set cursor to target position
-		const targetPos = { line: lineNumber, ch: 0 };
 		editor.setCursor(targetPos);
 
-		// Use requestAnimationFrame to ensure fresh measurement after layout settles
-		requestAnimationFrame(() => {
-			const cm = (editor as any).cm;
-			let scrolled = false;
-
-			if (cm) {
-				// Handle CodeMirror 5 (used in Live Preview)
-				if (typeof cm.charCoords === 'function' && typeof cm.scrollTo === 'function') {
-					try {
-						// Fresh measurement - get the line's position in the document
-						const coords = cm.charCoords({ line: lineNumber, ch: 0 }, 'local');
-						// Scroll to put this line at the top of the viewport
-						cm.scrollTo(null, coords.top);
-						scrolled = true;
-					} catch (error) {
-						console.warn('Long View: CodeMirror 5 scroll failed', error);
-					}
-				}
-				// Handle CodeMirror 6 (newer Obsidian versions)
-				else if (cm.scrollDOM) {
-					try {
-						const scrollEl = cm.scrollDOM;
-						// Find the line element - fresh measurement
-						const lineEl = cm.contentDOM?.querySelector(`.cm-line:nth-child(${lineNumber + 1})`);
-						if (lineEl) {
-							// Scroll the line to the top of the container
-							const lineTop = (lineEl as HTMLElement).offsetTop;
-							scrollEl.scrollTop = lineTop;
-							scrolled = true;
-						}
-					} catch (error) {
-						console.warn('Long View: CodeMirror 6 scroll failed', error);
-					}
-				}
-			}
-
-			// Fallback: use Obsidian's scrollIntoView
-			if (!scrolled) {
-				editor.scrollIntoView({ from: targetPos, to: targetPos }, false);
-			}
-		});
+		// Use Obsidian's scrollIntoView with center option for better visibility
+		// The 'center' option ensures the target is in the middle of the viewport, not at the top or bottom
+		editor.scrollIntoView({ from: targetPos, to: targetPos }, true);
 
 		// Reveal and focus the markdown view
 		this.app.workspace.revealLeaf(leaf);
@@ -542,37 +534,4 @@ export class LongView extends ItemView {
 		this.minimapRenderer.highlightHeadingForOffset(approxOffset);
 	}
 
-	/**
-	 * Find the start of the paragraph that contains the given offset
-	 */
-	private findParagraphStart(content: string, offset: number): number {
-		// Look backwards from offset to find paragraph boundary
-		// Paragraph boundaries are double newlines or start of document
-
-		let pos = offset;
-
-		// Skip any leading whitespace at the offset position
-		while (pos > 0 && /\s/.test(content[pos - 1])) {
-			pos--;
-		}
-
-		// Look for double newline or start of content
-		while (pos > 0) {
-			// Check for double newline (paragraph break)
-			if (content[pos - 1] === '\n' && content[pos - 2] === '\n') {
-				// Found paragraph break, return position after the double newline
-				return pos;
-			}
-
-			// Check for heading (line starting with #)
-			if (pos > 0 && content[pos - 1] === '\n' && content[pos] === '#') {
-				return pos;
-			}
-
-			pos--;
-		}
-
-		// Reached start of document
-		return 0;
-	}
 }

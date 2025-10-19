@@ -7,6 +7,7 @@ export interface MiniMapOptions {
 	sourcePath: string;
 	onSectionClick?: (offset: number) => void;
 	onHeadingClick?: (offset: number) => void;
+	showParagraphs?: boolean;
 }
 
 interface RenderedSection {
@@ -29,6 +30,7 @@ export class MiniMapRenderer extends Component {
 	private headingNumberMap: Map<number, string> = new Map();
 	private headingEntries: Array<{ offset: number; element: HTMLElement }> = [];
 	private activeHeadingEl: HTMLElement | null = null;
+	private currentHeadingLevel: number = 0;
 
 	constructor(options: MiniMapOptions) {
 		super();
@@ -39,6 +41,7 @@ export class MiniMapRenderer extends Component {
 		this.pages = pages;
 		this.cleanup();
 		this.computeHeadingNumbers();
+		this.currentHeadingLevel = 0;
 
 		this.minimapRootEl = this.options.containerEl.createDiv({ cls: 'long-view-minimap' });
 		this.contentWrapperEl = this.minimapRootEl.createDiv({ cls: 'long-view-minimap-content' });
@@ -72,14 +75,37 @@ export class MiniMapRenderer extends Component {
 	}
 
 	private renderSection(sectionEl: HTMLElement, page: DocumentPage): void {
+		// Determine indentation level for this section
+		// If the page has headings, use the first heading's level
+		// Otherwise, maintain the current level
+		let sectionLevel = this.currentHeadingLevel;
+		if (page.headings && page.headings.length > 0) {
+			sectionLevel = page.headings[0].level;
+		}
+
 		const contentEl = sectionEl.createDiv({ cls: 'long-view-minimap-section-content' });
-		const flowEl = contentEl.createDiv({ cls: 'long-view-minimap-section-body' });
+
+		// Create nested divs for hierarchy bars (one for each nesting level)
+		let containerEl = contentEl;
+		for (let level = 2; level <= sectionLevel; level++) {
+			const hierarchyDiv = containerEl.createDiv({ cls: 'long-view-minimap-hierarchy-level' });
+			containerEl = hierarchyDiv;
+		}
+
+		const flowEl = containerEl.createDiv({ cls: 'long-view-minimap-section-body' });
+
+		// Apply indentation based on heading level (10px per level)
+		const indentAmount = Math.max(0, sectionLevel - 1) * 10;
+		flowEl.style.paddingLeft = `${indentAmount}px`;
 
 		try {
 			const fragments = this.tokenizeContent(page);
 			for (const fragment of fragments) {
 				if (fragment.type === 'heading') {
 					const headingInfo = fragment.heading;
+					// Update current heading level
+					this.currentHeadingLevel = headingInfo.level;
+
 					const numbering = this.headingNumberMap.get(headingInfo.startOffset);
 					const headingEl = flowEl.createDiv({ cls: 'long-view-minimap-heading' });
 					headingEl.setText(numbering ? `${numbering} ${headingInfo.text}` : headingInfo.text);
@@ -92,12 +118,16 @@ export class MiniMapRenderer extends Component {
 					});
 					this.headingEntries.push({ offset: headingInfo.startOffset, element: headingEl });
 				} else if (fragment.type === 'text') {
-					const lines = this.tokenizeLines(fragment.text);
-					for (const line of lines) {
-						flowEl.createEl('p', {
-							cls: 'long-view-minimap-line',
-							text: line,
-						});
+					// Only render paragraphs if the setting is enabled
+					const showParagraphs = this.options.showParagraphs !== false;
+					if (showParagraphs) {
+						const lines = this.tokenizeLines(fragment.text);
+						for (const line of lines) {
+							flowEl.createEl('p', {
+								cls: 'long-view-minimap-line',
+								text: line,
+							});
+						}
 					}
 				} else if (fragment.type === 'image') {
 					const src = this.resolveImageSrc(fragment.link);
@@ -403,6 +433,7 @@ export class MiniMapRenderer extends Component {
 		this.headingNumberMap.clear();
 		this.headingEntries = [];
 		this.activeHeadingEl = null;
+		this.currentHeadingLevel = 0;
 
 		if (this.minimapRootEl) {
 			this.minimapRootEl.remove();
