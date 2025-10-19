@@ -8,6 +8,7 @@ export interface MiniMapOptions {
 	onSectionClick?: (offset: number) => void;
 	onHeadingClick?: (offset: number) => void;
 	showParagraphs?: boolean;
+	numberSections?: boolean;
 }
 
 interface RenderedSection {
@@ -85,24 +86,54 @@ export class MiniMapRenderer extends Component {
 		let currentLevel = this.currentHeadingLevel;
 		let flowEl: HTMLElement | null = null;
 
-		// Helper to create wrapper structure for current state
-		const createWrapperStructure = (calloutStack: Array<{ color: string }>, level: number): HTMLElement => {
-			let container = contentEl;
+		// Track currently open callout wrapper elements
+		let openCalloutWrappers: HTMLElement[] = [];
 
-			// Apply nested callout backgrounds (outer to inner)
-			for (const callout of calloutStack) {
+		// Helper to update callout wrappers based on new stack
+		const updateCalloutWrappers = (newStack: Array<{ color: string }>): HTMLElement => {
+			console.log('LongView: updateCalloutWrappers called with newStack length:', newStack.length, 'current length:', currentCalloutStack.length);
+			if (newStack.length > 0) {
+				console.log('  newStack colors:', newStack.map(c => c.color));
+			}
+
+			// Find common prefix length
+			let commonPrefixLen = 0;
+			while (commonPrefixLen < Math.min(currentCalloutStack.length, newStack.length) &&
+				   currentCalloutStack[commonPrefixLen].color === newStack[commonPrefixLen].color) {
+				commonPrefixLen++;
+			}
+
+			// Keep only the common prefix wrappers
+			openCalloutWrappers = openCalloutWrappers.slice(0, commonPrefixLen);
+
+			// Determine where to append new wrappers
+			let container = openCalloutWrappers.length > 0
+				? openCalloutWrappers[openCalloutWrappers.length - 1]
+				: contentEl;
+
+			// Add new wrappers for the rest of the stack
+			for (let i = commonPrefixLen; i < newStack.length; i++) {
+				const callout = newStack[i];
 				const calloutWrapper = container.createDiv({ cls: 'long-view-minimap-callout-bg' });
 				const rgbMatch = callout.color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
 				if (rgbMatch) {
 					const [, r, g, b] = rgbMatch;
 					calloutWrapper.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.15)`;
+					console.log('LongView: Created callout wrapper with color', `rgba(${r}, ${g}, ${b}, 0.15)`);
 				} else {
 					calloutWrapper.style.backgroundColor = callout.color;
 					calloutWrapper.style.opacity = '0.15';
+					console.log('LongView: Created callout wrapper with fallback color', callout.color);
 				}
+				openCalloutWrappers.push(calloutWrapper);
 				container = calloutWrapper;
 			}
 
+			return container;
+		};
+
+		// Helper to create section-specific structure (hierarchy bars + section body)
+		const createSectionStructure = (container: HTMLElement, level: number): HTMLElement => {
 			// Create nested divs for hierarchy bars
 			for (let l = 2; l <= level; l++) {
 				const hierarchyDiv = container.createDiv({ cls: 'long-view-minimap-hierarchy-level' });
@@ -120,15 +151,25 @@ export class MiniMapRenderer extends Component {
 
 					// Get the callout stack for this heading
 					const headingStack = this.headingCalloutStacks.get(headingInfo.startOffset) || [];
+					console.log(`LongView: Heading "${headingInfo.text}" at offset ${headingInfo.startOffset} has stack length:`, headingStack.length);
 
-					// Check if we need new wrappers (stack or level changed)
+					// Check if we need to update wrappers or create new section structure
 					const stackChanged = JSON.stringify(headingStack) !== JSON.stringify(currentCalloutStack);
 					const levelChanged = headingInfo.level !== currentLevel;
 
 					if (stackChanged || levelChanged || !flowEl) {
+						console.log(`  stackChanged: ${stackChanged}, levelChanged: ${levelChanged}, !flowEl: ${!flowEl}`);
+
+						// Get the container (with updated callout wrappers)
+						// IMPORTANT: Pass headingStack BEFORE updating currentCalloutStack!
+						const calloutContainer = updateCalloutWrappers(headingStack);
+
+						// Update current stack AFTER updateCalloutWrappers has compared
 						currentCalloutStack = headingStack;
+
+						// Create new section structure for this heading
 						currentLevel = headingInfo.level;
-						flowEl = createWrapperStructure(currentCalloutStack, currentLevel);
+						flowEl = createSectionStructure(calloutContainer, currentLevel);
 					}
 
 					// Update current heading level for next iteration
@@ -136,7 +177,12 @@ export class MiniMapRenderer extends Component {
 
 					const numbering = this.headingNumberMap.get(headingInfo.startOffset);
 					const headingEl = flowEl.createDiv({ cls: 'long-view-minimap-heading' });
-					headingEl.setText(numbering ? `${numbering} ${headingInfo.text}` : headingInfo.text);
+
+					// Show numbering only if numberSections is enabled
+					const showNumbering = this.options.numberSections !== false;
+					const headingText = (showNumbering && numbering) ? `${numbering} ${headingInfo.text}` : headingInfo.text;
+					headingEl.setText(headingText);
+
 					headingEl.dataset.offset = String(headingInfo.startOffset);
 					headingEl.dataset.level = String(headingInfo.level);
 					headingEl.addEventListener('click', (event) => {
@@ -154,7 +200,8 @@ export class MiniMapRenderer extends Component {
 				} else if (fragment.type === 'text') {
 					// Ensure we have a flowEl for content before any heading
 					if (!flowEl) {
-						flowEl = createWrapperStructure(currentCalloutStack, currentLevel);
+						const calloutContainer = updateCalloutWrappers(currentCalloutStack);
+						flowEl = createSectionStructure(calloutContainer, currentLevel);
 					}
 					// Only render paragraphs if the setting is enabled
 					const showParagraphs = this.options.showParagraphs !== false;
@@ -169,7 +216,8 @@ export class MiniMapRenderer extends Component {
 					}
 				} else if (fragment.type === 'image') {
 					if (!flowEl) {
-						flowEl = createWrapperStructure(currentCalloutStack, currentLevel);
+						const calloutContainer = updateCalloutWrappers(currentCalloutStack);
+						flowEl = createSectionStructure(calloutContainer, currentLevel);
 					}
 					const src = this.resolveImageSrc(fragment.link);
 					if (!src) {
@@ -180,7 +228,8 @@ export class MiniMapRenderer extends Component {
 					imgEl.alt = fragment.alt || fragment.link;
 				} else if (fragment.type === 'flag') {
 					if (!flowEl) {
-						flowEl = createWrapperStructure(currentCalloutStack, currentLevel);
+						const calloutContainer = updateCalloutWrappers(currentCalloutStack);
+						flowEl = createSectionStructure(calloutContainer, currentLevel);
 					}
 					const flagInfo = fragment.flag;
 					const flagEl = flowEl.createDiv({ cls: 'long-view-minimap-flag' });
@@ -426,6 +475,15 @@ export class MiniMapRenderer extends Component {
 
 	private computeHeadingCalloutStacks(): void {
 		this.headingCalloutStacks = computeHeadingCalloutStacks(this.pages);
+		console.log('LongView: Computed callout stacks for', this.headingCalloutStacks.size, 'headings');
+		// Log a few examples
+		let count = 0;
+		for (const [offset, stack] of this.headingCalloutStacks) {
+			if (stack.length > 0 && count < 3) {
+				console.log('  Heading at offset', offset, 'has stack:', stack);
+				count++;
+			}
+		}
 	}
 
 	private setActiveHeading(element: HTMLElement | null): void {

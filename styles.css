@@ -269,8 +269,10 @@ img.long-view-minimap-image {
 
 /* Minimap callout background wrapper for section tinting */
 .long-view-minimap-callout-bg {
-	border-radius: 4px;
-	padding: 4px;
+	/* Maintain continuous backgrounds with minimal visual separation */
+	border-radius: 2px;
+	padding: 2px 4px;
+	margin: 0;
 }
 
 /* Minimap callout title */

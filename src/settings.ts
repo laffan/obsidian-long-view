@@ -4,10 +4,12 @@ export interface LongViewSettings {
 	defaultZoom: number;
 	viewMode: ViewMode;
 	showParagraphsInMinimap: boolean;
+	numberSections: boolean;
 }
 
 export const DEFAULT_SETTINGS: LongViewSettings = {
 	defaultZoom: 15, // 15% zoom as default (5-30% range)
 	viewMode: 'minimap',
 	showParagraphsInMinimap: true,
+	numberSections: true,
 };

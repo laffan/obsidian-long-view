@@ -89,7 +89,11 @@ export class LongView extends ItemView {
 		// Paragraph toggle (only visible in minimap mode)
 		this.paragraphToggleEl = headerEl.createDiv({ cls: 'long-view-paragraph-toggle' });
 		const paragraphToggleBtn = this.paragraphToggleEl.createEl('button', {
-			text: 'Show paragraphs',
+			text: 'Text',
+			cls: 'long-view-toggle-button',
+		});
+		const numberSectionsBtn = this.paragraphToggleEl.createEl('button', {
+			text: 'Numbers',
 			cls: 'long-view-toggle-button',
 		});
 
@@ -108,15 +112,22 @@ export class LongView extends ItemView {
 		const updateParagraphToggleUI = () => {
 			if (this.plugin.settings.showParagraphsInMinimap) {
 				paragraphToggleBtn.addClass('is-active');
-				paragraphToggleBtn.setText('Hide paragraphs');
 			} else {
 				paragraphToggleBtn.removeClass('is-active');
-				paragraphToggleBtn.setText('Show paragraphs');
+			}
+		};
+
+		const updateNumberSectionsUI = () => {
+			if (this.plugin.settings.numberSections) {
+				numberSectionsBtn.addClass('is-active');
+			} else {
+				numberSectionsBtn.removeClass('is-active');
 			}
 		};
 
 		updateModeUI();
 		updateParagraphToggleUI();
+		updateNumberSectionsUI();
 
 		// Mode button handlers
 		minimapBtn.addEventListener('click', () => {
@@ -150,6 +161,14 @@ export class LongView extends ItemView {
 			this.plugin.settings.showParagraphsInMinimap = !this.plugin.settings.showParagraphsInMinimap;
 			this.plugin.saveSettings();
 			updateParagraphToggleUI();
+			this.updateView();
+		});
+
+		// Number sections toggle handler
+		numberSectionsBtn.addEventListener('click', () => {
+			this.plugin.settings.numberSections = !this.plugin.settings.numberSections;
+			this.plugin.saveSettings();
+			updateNumberSectionsUI();
 			this.updateView();
 		});
 
@@ -243,6 +262,7 @@ export class LongView extends ItemView {
 			onSectionClick: (offset) => this.scrollToOffset(offset),
 			onHeadingClick: (offset) => this.scrollToOffset(offset),
 			showParagraphs: this.plugin.settings.showParagraphsInMinimap,
+			numberSections: this.plugin.settings.numberSections,
 		});
 
 		await this.minimapRenderer.initialize(this.pages);
