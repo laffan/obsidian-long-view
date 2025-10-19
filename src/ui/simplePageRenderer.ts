@@ -111,35 +111,30 @@ export function renderPageContent(
 }
 
 function renderStandaloneFlag(flagText: string, containerEl: HTMLElement, zoomLevel: number): void {
-	// Extract message and determine color
 	let message = flagText;
-	let color = '#888888';
-	let flagType = '';
+	let flagType = 'COMMENT';
 	const fullLine = flagText.trim();
 
 	if (message.startsWith('==')) {
 		const match = message.match(/==(\w+):\s*([^=]+)==/);
 		if (match) {
-			flagType = match[1];
+			flagType = match[1].toUpperCase();
 			message = match[2].trim();
-			color = getFlagColor(flagType);
 		}
 	} else if (message.startsWith('%%')) {
 		message = message.replace(/^%%\s*/, '').replace(/%%$/, '').trim();
-		color = getFlagColor('COMMENT');
 		flagType = 'COMMENT';
 	}
 
-	// Create a full-width bar
 	const bar = containerEl.createDiv({ cls: 'long-view-flag-bar' });
 	const flagTypeUpper = flagType.toUpperCase();
+	const flagTypeLower = flagTypeUpper.toLowerCase();
+	bar.addClass(`long-view-flag-type-${flagTypeLower}`);
+	bar.dataset.flagType = flagTypeLower;
 	if (flagTypeUpper === 'MISSING') {
 		bar.addClass('is-missing-flag');
-	} else {
-		bar.style.backgroundColor = color;
 	}
 
-	// At low zoom, show just the bar without text for cleaner look, but make it taller
 	if (zoomLevel >= 20) {
 		if (flagTypeUpper === 'MISSING') {
 			const cleaned = fullLine
@@ -159,7 +154,7 @@ function renderStandaloneFlag(flagText: string, containerEl: HTMLElement, zoomLe
 function renderInlineFormatting(text: string, textContainerEl: HTMLElement, pageContainerEl: HTMLElement, zoomLevel: number): void {
 	// Pattern to match flags and comments inline
 	const flagPattern = /(==(\w+):[^=]+==|%%[^%]+%%)/g;
-	const parts: Array<{ type: 'text' | 'flag'; content: string; flagType?: string; color?: string }> = [];
+const parts: Array<{ type: 'text' | 'flag'; content: string; flagType?: string }> = [];
 
 	let lastIndex = 0;
 	let match: RegExpExecArray | null;
@@ -173,27 +168,23 @@ function renderInlineFormatting(text: string, textContainerEl: HTMLElement, page
 			});
 		}
 
-		// Determine flag type and color
-		let flagType = '';
-		let color = '#888888';
+	// Determine flag type
+	let flagType = '';
 
-		if (match[0].startsWith('==')) {
-			// ==TYPE: message ==
-			flagType = match[2] || '';
-			color = getFlagColor(flagType);
-		} else {
-			// %% comment %%
-			flagType = 'COMMENT';
-			color = '#888888';
-		}
+	if (match[0].startsWith('==')) {
+		// ==TYPE: message ==
+		flagType = match[2] || '';
+	} else {
+		// %% comment %%
+		flagType = 'COMMENT';
+	}
 
-		// Add the flag
-		parts.push({
-			type: 'flag',
-			content: match[0],
-			flagType,
-			color
-		});
+	// Add the flag
+	parts.push({
+		type: 'flag',
+		content: match[0],
+		flagType,
+	});
 
 		lastIndex = match.index + match[0].length;
 	}
@@ -216,7 +207,7 @@ function renderInlineFormatting(text: string, textContainerEl: HTMLElement, page
 
 	// Then, add flag bars after the text element (at all zoom levels)
 	for (const part of parts) {
-		if (part.type === 'flag' && part.color) {
+	if (part.type === 'flag' && part.flagType) {
 			// Extract the message from the flag
 			let message = part.content;
 			// Remove the markup to get clean message
@@ -228,40 +219,22 @@ function renderInlineFormatting(text: string, textContainerEl: HTMLElement, page
 
 			// Create a full-width bar in the page container (not inside the p/h tag)
 			const bar = pageContainerEl.createDiv({ cls: 'long-view-flag-bar' });
-			const flagTypeUpper = part.flagType?.toUpperCase();
+			const flagTypeUpper = part.flagType?.toUpperCase() ?? 'COMMENT';
+			const flagTypeLower = flagTypeUpper.toLowerCase();
+			bar.addClass(`long-view-flag-type-${flagTypeLower}`);
+			bar.dataset.flagType = flagTypeLower;
 		if (flagTypeUpper === 'MISSING') {
 			bar.addClass('is-missing-flag');
-		} else {
-			bar.style.backgroundColor = part.color;
 		}
 
 			// At low zoom, show just the bar without text for cleaner look, but make it taller
 			if (zoomLevel >= 20) {
-				if (flagTypeUpper === 'MISSING') {
-					bar.setText(message);
-				} else {
-					bar.setText(message);
-				}
+				bar.setText(message);
 			} else {
 				bar.addClass('long-view-flag-bar-low-zoom');
 			}
 		}
 	}
-}
-
-function getFlagColor(type: string): string {
-	const typeUpper = type.toUpperCase();
-	const colorMap: Record<string, string> = {
-		'TODO': '#ffd700',      // Yellow
-		'NOW': '#ff4444',       // Red
-		'DONE': '#44ff44',      // Green
-		'WAITING': '#ff9944',   // Orange
-		'NOTE': '#4488ff',      // Blue
-		'IMPORTANT': '#ff44ff', // Magenta
-		'COMMENT': '#888888',   // Gray
-		'MISSING': '#ff4444',   // Red (special handling)
-	};
-	return colorMap[typeUpper] || '#888888';
 }
 
 function renderImage(match: RegExpMatchArray, containerEl: HTMLElement, app: App, sourcePath: string): void {

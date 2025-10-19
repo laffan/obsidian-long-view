@@ -1,5 +1,6 @@
 import { App, Component, TFile } from 'obsidian';
 import { DocumentHeading, DocumentPage, DocumentFlag, getFirstWords, computeHeadingCalloutStacks } from '../utils/documentParser';
+import { MinimapFontSettings } from '../settings';
 
 export interface MiniMapOptions {
 	app: App;
@@ -9,6 +10,7 @@ export interface MiniMapOptions {
 	onHeadingClick?: (offset: number) => void;
 	showParagraphs?: boolean;
 	numberSections?: boolean;
+	minimapFonts: MinimapFontSettings;
 }
 
 interface RenderedSection {
@@ -35,10 +37,12 @@ export class MiniMapRenderer extends Component {
 	private currentCalloutStack: Array<{ color: string }> = [];
 	// Map from heading offset to its callout stack
 	private headingCalloutStacks: Map<number, Array<{ color: string }>> = new Map();
+  private minimapFonts: MinimapFontSettings;
 
 	constructor(options: MiniMapOptions) {
 		super();
 		this.options = options;
+    this.minimapFonts = options.minimapFonts;
 	}
 
 	async initialize(pages: DocumentPage[]): Promise<void> {
@@ -215,36 +219,35 @@ export class MiniMapRenderer extends Component {
 					imgEl.src = src;
 					imgEl.alt = fragment.alt || fragment.link;
 				} else if (fragment.type === 'flag') {
-				if (!flowEl) {
-					const calloutContainer = updateCalloutWrappers(currentCalloutStack);
-					flowEl = createSectionStructure(calloutContainer, currentLevel);
-				}
-				const flagInfo = fragment.flag;
-				const flagEl = flowEl.createDiv({ cls: 'long-view-minimap-flag' });
-				const flagTypeUpper = flagInfo.type.toUpperCase();
-				const isMissingFlag = flagTypeUpper === 'MISSING';
-				if (isMissingFlag) {
-					flagEl.addClass('is-missing-flag');
-					flagEl.style.backgroundColor = 'transparent';
-					flagEl.style.color = '#ff1f1f';
-				} else {
-					flagEl.style.backgroundColor = flagInfo.color;
-				}
+					if (!flowEl) {
+						const calloutContainer = updateCalloutWrappers(currentCalloutStack);
+						flowEl = createSectionStructure(calloutContainer, currentLevel);
+					}
+					const flagInfo = fragment.flag;
+					const flagEl = flowEl.createDiv({ cls: 'long-view-minimap-flag' });
+					const flagTypeUpper = flagInfo.type.toUpperCase();
+					const flagTypeLower = flagTypeUpper.toLowerCase();
+					const isMissingFlag = flagTypeUpper === 'MISSING';
+					flagEl.addClass(`long-view-flag-type-${flagTypeLower}`);
+					flagEl.dataset.flagType = flagTypeLower;
+					if (isMissingFlag) {
+						flagEl.addClass('is-missing-flag');
+					}
 
-				// Show only the message, not the type name
-				let messageText: string;
-				if (isMissingFlag) {
-					const cleanedLine = flagInfo.lineText
-						?.trim()
-						.replace(/^==/, '')
-						.replace(/==$/, '')
-						.trim();
-					const withoutTitle = cleanedLine?.replace(/^MISSING:\s*/i, '').trim() ?? '';
-					messageText = withoutTitle.length > 0 ? withoutTitle : flagInfo.message;
-				} else {
-					messageText = getFirstWords(flagInfo.message, 10);
-				}
-				flagEl.createSpan({ cls: 'long-view-minimap-flag-message', text: messageText });
+					// Show only the message, not the type name
+					let messageText: string;
+					if (isMissingFlag) {
+						const cleanedLine = flagInfo.lineText
+							?.trim()
+							.replace(/^==/, '')
+							.replace(/==$/, '')
+							.trim();
+						const withoutTitle = cleanedLine?.replace(/^MISSING:\s*/i, '').trim() ?? '';
+						messageText = withoutTitle.length > 0 ? withoutTitle : flagInfo.message;
+					} else {
+						messageText = getFirstWords(flagInfo.message, 10);
+					}
+					flagEl.createSpan({ cls: 'long-view-minimap-flag-message', text: messageText });
 
 					// Make flag clickable
 					flagEl.addEventListener('click', (event) => {
@@ -527,13 +530,15 @@ export class MiniMapRenderer extends Component {
 			return;
 		}
 
-		const bodyFontSize = 3; // increased from 2px
+		const bodyFontSize = this.minimapFonts.body;
 		const lineHeight = 1.25;
-		const headingBase = 12;
+		const headingBase = this.minimapFonts.heading;
+		const flagFont = this.minimapFonts.flag;
 
 		this.contentWrapperEl.style.setProperty('--long-view-minimap-font-size', `${bodyFontSize}px`);
 		this.contentWrapperEl.style.setProperty('--long-view-minimap-line-height', lineHeight.toFixed(2));
 		this.contentWrapperEl.style.setProperty('--long-view-minimap-heading-font-base', `${headingBase}px`);
+		this.contentWrapperEl.style.setProperty('--long-view-minimap-flag-font-size', `${flagFont}px`);
 	}
 
 	cleanup(): void {

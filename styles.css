@@ -230,7 +230,7 @@ img.long-view-minimap-image {
 .long-view-minimap-heading {
 	pointer-events: auto;
 	display: block;
-	font-size: 12px;
+	font-size: var(--long-view-minimap-heading-font-base, 12px);
 	color: var(--text-normal);
 	margin: 2px 0;
 	letter-spacing: 0.01em;
@@ -302,6 +302,41 @@ img.long-view-minimap-image {
 	pointer-events: auto;
 	cursor: pointer;
 	transition: opacity 0.15s ease;
+}
+
+.long-view-minimap-flag.long-view-flag-type-todo {
+	background-color: #ffd700;
+	color: #4a3900;
+}
+
+.long-view-minimap-flag.long-view-flag-type-now {
+	background-color: #ff4444;
+	color: #5e0606;
+}
+
+.long-view-minimap-flag.long-view-flag-type-done {
+	background-color: #44ff44;
+	color: #064a06;
+}
+
+.long-view-minimap-flag.long-view-flag-type-waiting {
+	background-color: #ff9944;
+	color: #663206;
+}
+
+.long-view-minimap-flag.long-view-flag-type-note {
+	background-color: #4488ff;
+	color: #082d74;
+}
+
+.long-view-minimap-flag.long-view-flag-type-important {
+	background-color: #ff44ff;
+	color: #600060;
+}
+
+.long-view-minimap-flag.long-view-flag-type-comment {
+	background-color: #888888;
+	color: var(--text-normal);
 }
 
 .long-view-minimap-flag.is-missing-flag {
@@ -386,11 +421,22 @@ img.long-view-minimap-image {
 }
 
 .long-view-minimap-flag-message {
-	font-size: 12px;
-	color: #000;
+	font-size: var(--long-view-minimap-flag-font-size, 12px);
+	color: inherit;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+}
+
+.long-view-settings-section {
+	margin-top: 1.5em;
+}
+
+.long-view-inline-flag-preview {
+	display: inline-block;
+	margin-left: 8px;
+	padding: 0 6px;
+	border-radius: 3px;
 }
 
 /* Empty state */
@@ -572,11 +618,46 @@ img.long-view-minimap-image {
 	width: 100%;
 	padding: 4px 8px;
 	margin: 4px 0;
-	color: #000;
+	color: inherit;
 	font-size: 20px;
 	font-weight: 500;
 	box-sizing: border-box;
 	min-height: 8px; /* Ensure bar is visible even without text at low zoom */
+}
+
+.long-view-flag-bar.long-view-flag-type-todo {
+	background-color: #ffd700;
+	color: #4a3900;
+}
+
+.long-view-flag-bar.long-view-flag-type-now {
+	background-color: #ff4444;
+	color: #5e0606;
+}
+
+.long-view-flag-bar.long-view-flag-type-done {
+	background-color: #44ff44;
+	color: #064a06;
+}
+
+.long-view-flag-bar.long-view-flag-type-waiting {
+	background-color: #ff9944;
+	color: #663206;
+}
+
+.long-view-flag-bar.long-view-flag-type-note {
+	background-color: #4488ff;
+	color: #082d74;
+}
+
+.long-view-flag-bar.long-view-flag-type-important {
+	background-color: #ff44ff;
+	color: #600060;
+}
+
+.long-view-flag-bar.long-view-flag-type-comment {
+	background-color: #888888;
+	color: var(--text-normal);
 }
 
 .long-view-flag-bar.is-missing-flag {

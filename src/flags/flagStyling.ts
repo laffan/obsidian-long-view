@@ -1,9 +1,10 @@
 import { MatchDecorator, ViewPlugin, DecorationSet, Decoration, EditorView, ViewUpdate } from '@codemirror/view';
 import { Extension } from '@codemirror/state';
 import type { MarkdownPostProcessorContext } from 'obsidian';
+import { FLAG_TYPES } from './flagData';
 
 const FLAG_REGEX = /==(TODO|NOW|DONE|WAITING|NOTE|IMPORTANT|MISSING|COMMENT):[^=]+==/gi;
-const FLAG_TYPES = new Set(['TODO', 'NOW', 'DONE', 'WAITING', 'NOTE', 'IMPORTANT', 'MISSING', 'COMMENT']);
+const FLAG_TYPE_SET = new Set<string>(FLAG_TYPES);
 
 const flagDecorator = new MatchDecorator({
 	regexp: FLAG_REGEX,
@@ -13,7 +14,7 @@ const flagDecorator = new MatchDecorator({
 		if (type === 'missing') {
 			classes.push('is-missing-flag');
 		}
-		add(from, to, Decoration.mark({ class: classes.join(' ') }));
+		add(from, to, Decoration.mark({ class: classes.join(' '), attributes: { 'data-flag-type': type } }));
 	},
 });
 
@@ -50,7 +51,7 @@ export function processRenderedFlags(element: HTMLElement, _ctx: MarkdownPostPro
 		}
 
 		const typeUpper = match[1].toUpperCase();
-		if (!FLAG_TYPES.has(typeUpper)) {
+		if (!FLAG_TYPE_SET.has(typeUpper)) {
 			return;
 		}
 
@@ -60,5 +61,6 @@ export function processRenderedFlags(element: HTMLElement, _ctx: MarkdownPostPro
 			mark.classList.add('is-missing-flag');
 		}
 		(mark as HTMLElement).dataset.longViewFlag = 'true';
+		(mark as HTMLElement).dataset.flagType = typeLower;
 	});
 }

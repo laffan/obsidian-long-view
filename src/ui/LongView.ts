@@ -204,7 +204,7 @@ export class LongView extends ItemView {
 		}
 	}
 
-	private async updateView(): Promise<void> {
+	async updateView(): Promise<void> {
 		const activeFile = this.app.workspace.getActiveFile();
 
 		if (!activeFile) {
@@ -269,6 +269,7 @@ export class LongView extends ItemView {
 			onHeadingClick: (offset) => this.scrollToOffset(offset),
 			showParagraphs: this.plugin.settings.showParagraphsInMinimap,
 			numberSections: this.plugin.settings.numberSections,
+			minimapFonts: this.plugin.settings.minimapFontSizes,
 		});
 
 		await this.minimapRenderer.initialize(this.minimapSections);

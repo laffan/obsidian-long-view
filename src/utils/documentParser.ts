@@ -1,3 +1,5 @@
+import { getFlagColor } from '../flags/flagColors';
+
 export interface DocumentCallout {
 	type: string;
 	title: string;
@@ -123,24 +125,6 @@ export function parseDocumentIntoPages(
 export function getLineFromOffset(text: string, offset: number): number {
 	const textUpToOffset = text.substring(0, offset);
 	return textUpToOffset.split('\n').length - 1;
-}
-
-/**
- * Map flag type to color
- */
-export function getFlagColor(type: string): string {
-	const typeUpper = type.toUpperCase();
-	const colorMap: Record<string, string> = {
-		'TODO': '#ffd700',      // Yellow
-		'NOW': '#ff4444',       // Red
-		'DONE': '#44ff44',      // Green
-		'WAITING': '#ff9944',   // Orange
-		'NOTE': '#4488ff',      // Blue
-		'IMPORTANT': '#ff44ff', // Magenta
-		'COMMENT': '#888888',   // Gray (for %% comments %%)
-		'MISSING': '#ff4444',   // Red (special handling)
-	};
-	return colorMap[typeUpper] || '#888888'; // Default gray
 }
 
 /**
