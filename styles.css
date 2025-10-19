@@ -286,13 +286,6 @@ img.long-view-minimap-image {
 	opacity: 0.8;
 }
 
-.long-view-minimap-flag-type {
-	font-size: 9px;
-	font-weight: 600;
-	color: #000;
-	text-transform: uppercase;
-}
-
 .long-view-minimap-flag-message {
 	font-size: 9px;
 	color: #000;

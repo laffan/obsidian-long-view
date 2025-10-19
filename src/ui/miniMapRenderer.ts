@@ -86,6 +86,7 @@ export class MiniMapRenderer extends Component {
 		const contentEl = sectionEl.createDiv({ cls: 'long-view-minimap-section-content' });
 
 		// Create nested divs for hierarchy bars (one for each nesting level)
+		// Each hierarchy div provides 8px padding, which gives us the visual indentation
 		let containerEl = contentEl;
 		for (let level = 2; level <= sectionLevel; level++) {
 			const hierarchyDiv = containerEl.createDiv({ cls: 'long-view-minimap-hierarchy-level' });
@@ -93,10 +94,6 @@ export class MiniMapRenderer extends Component {
 		}
 
 		const flowEl = containerEl.createDiv({ cls: 'long-view-minimap-section-body' });
-
-		// Apply indentation based on heading level (10px per level)
-		const indentAmount = Math.max(0, sectionLevel - 1) * 10;
-		flowEl.style.paddingLeft = `${indentAmount}px`;
 
 		try {
 			const fragments = this.tokenizeContent(page);
@@ -142,7 +139,7 @@ export class MiniMapRenderer extends Component {
 					const flagEl = flowEl.createDiv({ cls: 'long-view-minimap-flag' });
 					flagEl.style.backgroundColor = flagInfo.color;
 
-					const typeEl = flagEl.createSpan({ cls: 'long-view-minimap-flag-type', text: flagInfo.type });
+					// Show only the message, not the type name
 					const messagePreview = getFirstWords(flagInfo.message, 10);
 					const messageEl = flagEl.createSpan({ cls: 'long-view-minimap-flag-message', text: messagePreview });
 
