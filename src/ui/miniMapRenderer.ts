@@ -32,6 +32,7 @@ export class MiniMapRenderer extends Component {
 	private headingEntries: Array<{ offset: number; element: HTMLElement }> = [];
 	private activeHeadingEl: HTMLElement | null = null;
 	private currentHeadingLevel: number = 0;
+	private currentCalloutStack: Array<{ color: string }> = [];
 	// Map from heading offset to its callout stack
 	private headingCalloutStacks: Map<number, Array<{ color: string }>> = new Map();
 
@@ -46,6 +47,7 @@ export class MiniMapRenderer extends Component {
 		this.computeHeadingNumbers();
 		this.computeHeadingCalloutStacks();
 		this.currentHeadingLevel = 0;
+		this.currentCalloutStack = [];
 
 		this.minimapRootEl = this.options.containerEl.createDiv({ cls: 'long-view-minimap' });
 		this.contentWrapperEl = this.minimapRootEl.createDiv({ cls: 'long-view-minimap-content' });
@@ -82,7 +84,8 @@ export class MiniMapRenderer extends Component {
 		const contentEl = sectionEl.createDiv({ cls: 'long-view-minimap-section-content' });
 
 		// Track current state for rendering
-		let currentCalloutStack: Array<{ color: string }> = [];
+		let currentCalloutStack = this.currentCalloutStack.slice();
+		let activeCalloutStack: Array<{ color: string }> = [];
 		let currentLevel = this.currentHeadingLevel;
 		let flowEl: HTMLElement | null = null;
 
@@ -93,8 +96,10 @@ export class MiniMapRenderer extends Component {
 		const updateCalloutWrappers = (newStack: Array<{ color: string }>): HTMLElement => {
 			// Find common prefix length
 			let commonPrefixLen = 0;
-			while (commonPrefixLen < Math.min(currentCalloutStack.length, newStack.length) &&
-				   currentCalloutStack[commonPrefixLen].color === newStack[commonPrefixLen].color) {
+			while (
+				commonPrefixLen < Math.min(activeCalloutStack.length, newStack.length) &&
+				activeCalloutStack[commonPrefixLen].color === newStack[commonPrefixLen].color
+			) {
 				commonPrefixLen++;
 			}
 
@@ -122,6 +127,9 @@ export class MiniMapRenderer extends Component {
 				container = calloutWrapper;
 			}
 
+			// Update active callout stack to reflect wrappers we just built
+			activeCalloutStack = newStack.map(callout => ({ color: callout.color }));
+
 			return container;
 		};
 
@@ -146,7 +154,9 @@ export class MiniMapRenderer extends Component {
 					const headingStack = this.headingCalloutStacks.get(headingInfo.startOffset) || [];
 
 					// Check if we need to update wrappers or create new section structure
-					const stackChanged = JSON.stringify(headingStack) !== JSON.stringify(currentCalloutStack);
+					const stackChanged =
+						headingStack.length !== currentCalloutStack.length ||
+						headingStack.some((callout, index) => callout.color !== currentCalloutStack[index]?.color);
 					const levelChanged = headingInfo.level !== currentLevel;
 
 					if (stackChanged || levelChanged || !flowEl) {
@@ -156,7 +166,7 @@ export class MiniMapRenderer extends Component {
 						const calloutContainer = updateCalloutWrappers(headingStack);
 
 						// Update current stack AFTER updateCalloutWrappers has compared
-						currentCalloutStack = headingStack;
+						currentCalloutStack = headingStack.slice();
 
 						// Create new section structure for this heading
 						currentLevel = headingInfo.level;
@@ -244,6 +254,10 @@ export class MiniMapRenderer extends Component {
 			console.error('MiniMapRenderer: Failed to render section', error);
 			contentEl.setText(page.content);
 		}
+
+		// Persist state so the next section inherits current context
+		this.currentCalloutStack = currentCalloutStack.slice();
+		this.currentHeadingLevel = currentLevel;
 	}
 
 	private tokenizeContent(page: DocumentPage): ContentFragment[] {
@@ -523,6 +537,7 @@ export class MiniMapRenderer extends Component {
 		this.headingEntries = [];
 		this.activeHeadingEl = null;
 		this.currentHeadingLevel = 0;
+		this.currentCalloutStack = [];
 
 		if (this.minimapRootEl) {
 			this.minimapRootEl.remove();
