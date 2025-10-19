@@ -91,11 +91,6 @@ export class MiniMapRenderer extends Component {
 
 		// Helper to update callout wrappers based on new stack
 		const updateCalloutWrappers = (newStack: Array<{ color: string }>): HTMLElement => {
-			console.log('LongView: updateCalloutWrappers called with newStack length:', newStack.length, 'current length:', currentCalloutStack.length);
-			if (newStack.length > 0) {
-				console.log('  newStack colors:', newStack.map(c => c.color));
-			}
-
 			// Find common prefix length
 			let commonPrefixLen = 0;
 			while (commonPrefixLen < Math.min(currentCalloutStack.length, newStack.length) &&
@@ -119,11 +114,9 @@ export class MiniMapRenderer extends Component {
 				if (rgbMatch) {
 					const [, r, g, b] = rgbMatch;
 					calloutWrapper.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.15)`;
-					console.log('LongView: Created callout wrapper with color', `rgba(${r}, ${g}, ${b}, 0.15)`);
 				} else {
 					calloutWrapper.style.backgroundColor = callout.color;
 					calloutWrapper.style.opacity = '0.15';
-					console.log('LongView: Created callout wrapper with fallback color', callout.color);
 				}
 				openCalloutWrappers.push(calloutWrapper);
 				container = calloutWrapper;
@@ -151,14 +144,12 @@ export class MiniMapRenderer extends Component {
 
 					// Get the callout stack for this heading
 					const headingStack = this.headingCalloutStacks.get(headingInfo.startOffset) || [];
-					console.log(`LongView: Heading "${headingInfo.text}" at offset ${headingInfo.startOffset} has stack length:`, headingStack.length);
 
 					// Check if we need to update wrappers or create new section structure
 					const stackChanged = JSON.stringify(headingStack) !== JSON.stringify(currentCalloutStack);
 					const levelChanged = headingInfo.level !== currentLevel;
 
 					if (stackChanged || levelChanged || !flowEl) {
-						console.log(`  stackChanged: ${stackChanged}, levelChanged: ${levelChanged}, !flowEl: ${!flowEl}`);
 
 						// Get the container (with updated callout wrappers)
 						// IMPORTANT: Pass headingStack BEFORE updating currentCalloutStack!
@@ -475,15 +466,6 @@ export class MiniMapRenderer extends Component {
 
 	private computeHeadingCalloutStacks(): void {
 		this.headingCalloutStacks = computeHeadingCalloutStacks(this.pages);
-		console.log('LongView: Computed callout stacks for', this.headingCalloutStacks.size, 'headings');
-		// Log a few examples
-		let count = 0;
-		for (const [offset, stack] of this.headingCalloutStacks) {
-			if (stack.length > 0 && count < 3) {
-				console.log('  Heading at offset', offset, 'has stack:', stack);
-				count++;
-			}
-		}
 	}
 
 	private setActiveHeading(element: HTMLElement | null): void {
@@ -525,7 +507,7 @@ export class MiniMapRenderer extends Component {
 			return;
 		}
 
-		const bodyFontSize = 2; // keep paragraph text one pixel smaller than previous 3px
+		const bodyFontSize = 3; // increased from 2px
 		const lineHeight = 1.25;
 		const headingBase = 12;
 

@@ -134,6 +134,7 @@
 	display: flex;
 	justify-content: flex-start;
 	align-items: flex-start;
+	background: var(--background-primary);
 }
 
 /* Paged mode styling */
@@ -278,7 +279,7 @@ img.long-view-minimap-image {
 /* Minimap callout title */
 .long-view-minimap-callout-title {
 	display: block;
-	font-size: 10px;
+	font-size: 12px;
 	color: var(--text-muted);
 	opacity: 0.5;
 	margin: 1px 0 2px 0;
@@ -308,7 +309,7 @@ img.long-view-minimap-image {
 }
 
 .long-view-minimap-flag-message {
-	font-size: 9px;
+	font-size: 12px;
 	color: #000;
 	white-space: nowrap;
 	overflow: hidden;
