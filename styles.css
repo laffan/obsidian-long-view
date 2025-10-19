@@ -323,7 +323,8 @@ img.long-view-minimap-image {
 	padding: 0 4px;
 	font-weight: 500;
 	text-decoration: none;
-	background-color: transparent;
+	background-color: transparent !important;
+	color: inherit;
 }
 
 .markdown-preview-view mark.long-view-inline-flag:not(.is-missing-flag),
@@ -333,51 +334,51 @@ img.long-view-minimap-image {
 
 .markdown-preview-view mark.long-view-inline-flag.long-view-inline-flag-todo,
 .cm-content .long-view-inline-flag.long-view-inline-flag-todo {
-	background-color: rgba(255, 215, 0, 0.28);
-	color: #4a3900;
+	background-color: rgba(255, 215, 0, 0.55) !important;
+	color: #4a2d00 !important;
 }
 
 .markdown-preview-view mark.long-view-inline-flag.long-view-inline-flag-now,
 .cm-content .long-view-inline-flag.long-view-inline-flag-now {
-	background-color: rgba(255, 68, 68, 0.28);
-	color: #5e0606;
+	background-color: rgba(255, 68, 68, 0.5) !important;
+	color: #5e0606 !important;
 }
 
 .markdown-preview-view mark.long-view-inline-flag.long-view-inline-flag-done,
 .cm-content .long-view-inline-flag.long-view-inline-flag-done {
-	background-color: rgba(68, 255, 68, 0.25);
-	color: #064a06;
+	background-color: rgba(68, 255, 68, 0.45) !important;
+	color: #064a06 !important;
 }
 
 .markdown-preview-view mark.long-view-inline-flag.long-view-inline-flag-waiting,
 .cm-content .long-view-inline-flag.long-view-inline-flag-waiting {
-	background-color: rgba(255, 153, 68, 0.25);
-	color: #663206;
+	background-color: rgba(255, 153, 68, 0.5) !important;
+	color: #663206 !important;
 }
 
 .markdown-preview-view mark.long-view-inline-flag.long-view-inline-flag-note,
 .cm-content .long-view-inline-flag.long-view-inline-flag-note {
-	background-color: rgba(68, 136, 255, 0.25);
-	color: #0a2f74;
+	background-color: rgba(68, 136, 255, 0.5) !important;
+	color: #08235c !important;
 }
 
 .markdown-preview-view mark.long-view-inline-flag.long-view-inline-flag-important,
 .cm-content .long-view-inline-flag.long-view-inline-flag-important {
-	background-color: rgba(255, 68, 255, 0.25);
-	color: #600060;
+	background-color: rgba(255, 68, 255, 0.5) !important;
+	color: #600060 !important;
 }
 
 .markdown-preview-view mark.long-view-inline-flag.long-view-inline-flag-comment,
 .cm-content .long-view-inline-flag.long-view-inline-flag-comment {
-	background-color: rgba(136, 136, 136, 0.25);
-	color: #2f2f2f;
+	background-color: rgba(136, 136, 136, 0.4) !important;
+	color: #1f1f1f !important;
 }
 
 .markdown-preview-view mark.long-view-inline-flag.is-missing-flag,
 .cm-content .long-view-inline-flag.is-missing-flag {
 	border: 1px dashed #ff4444;
-	background-color: rgba(255, 68, 68, 0.12);
-	color: #a10000;
+	background-color: rgba(255, 68, 68, 0.18) !important;
+	color: #a10000 !important;
 }
 
 .long-view-minimap-flag:hover {
