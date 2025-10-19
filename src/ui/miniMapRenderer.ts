@@ -1,5 +1,5 @@
 import { App, Component, TFile } from 'obsidian';
-import { DocumentHeading, DocumentPage } from '../utils/documentParser';
+import { DocumentHeading, DocumentPage, DocumentFlag, getFirstWords } from '../utils/documentParser';
 
 export interface MiniMapOptions {
 	app: App;
@@ -17,7 +17,8 @@ interface RenderedSection {
 type ContentFragment =
 	| { type: 'text'; text: string; startOffset: number }
 	| { type: 'image'; alt: string; link: string; startOffset: number }
-	| { type: 'heading'; heading: DocumentHeading };
+	| { type: 'heading'; heading: DocumentHeading }
+	| { type: 'flag'; flag: DocumentFlag };
 
 export class MiniMapRenderer extends Component {
 	private readonly options: MiniMapOptions;
@@ -106,6 +107,21 @@ export class MiniMapRenderer extends Component {
 					const imgEl = flowEl.createEl('img', { cls: 'long-view-minimap-image' });
 					imgEl.src = src;
 					imgEl.alt = fragment.alt || fragment.link;
+				} else if (fragment.type === 'flag') {
+					const flagInfo = fragment.flag;
+					const flagEl = flowEl.createDiv({ cls: 'long-view-minimap-flag' });
+					flagEl.style.backgroundColor = flagInfo.color;
+
+					const typeEl = flagEl.createSpan({ cls: 'long-view-minimap-flag-type', text: flagInfo.type });
+					const messagePreview = getFirstWords(flagInfo.message, 10);
+					const messageEl = flagEl.createSpan({ cls: 'long-view-minimap-flag-message', text: messagePreview });
+
+					// Make flag clickable
+					flagEl.addEventListener('click', (event) => {
+						event.preventDefault();
+						event.stopPropagation();
+						this.options.onHeadingClick?.(flagInfo.startOffset);
+					});
 				}
 			}
 
@@ -119,24 +135,44 @@ export class MiniMapRenderer extends Component {
 	private tokenizeContent(page: DocumentPage): ContentFragment[] {
 		const fragments: ContentFragment[] = [];
 		const headings = (page.headings ?? []).slice().sort((a, b) => a.startOffset - b.startOffset);
+		const flags = (page.flags ?? []).slice().sort((a, b) => a.startOffset - b.startOffset);
 		const content = page.content;
 		const base = page.startOffset;
+
+		// Create a merged sorted list of all special items (headings and flags)
+		const specialItems: Array<{ type: 'heading' | 'flag'; offset: number; data: DocumentHeading | DocumentFlag }> = [
+			...headings.map(h => ({ type: 'heading' as const, offset: h.startOffset, data: h })),
+			...flags.map(f => ({ type: 'flag' as const, offset: f.startOffset, data: f })),
+		].sort((a, b) => a.offset - b.offset);
+
 		let cursor = 0;
 
 		const pushText = (segment: string, segmentStart: number) => {
 			fragments.push(...this.extractTextAndImages(segment, segmentStart));
 		};
 
-		for (const heading of headings) {
-			const relativeStart = Math.max(0, heading.startOffset - base);
+		for (const item of specialItems) {
+			const relativeStart = Math.max(0, item.offset - base);
 			if (relativeStart > cursor) {
-				const beforeHeading = content.substring(cursor, relativeStart);
-				pushText(beforeHeading, base + cursor);
+				const beforeItem = content.substring(cursor, relativeStart);
+				pushText(beforeItem, base + cursor);
 			}
 
-			fragments.push({ type: 'heading', heading });
-
-			cursor = this.findHeadingLineEnd(content, relativeStart);
+			if (item.type === 'heading') {
+				fragments.push({ type: 'heading', heading: item.data as DocumentHeading });
+				cursor = this.findHeadingLineEnd(content, relativeStart);
+			} else if (item.type === 'flag') {
+				fragments.push({ type: 'flag', flag: item.data as DocumentFlag });
+				// Skip past the flag in the content
+				// Try both patterns: ==TYPE: message == and %% comment %%
+				const flagPattern = /==\w+:[^=]+==|%%[^%]+%%/;
+				const match = content.substring(relativeStart).match(flagPattern);
+				if (match) {
+					cursor = relativeStart + match[0].length;
+				} else {
+					cursor = relativeStart;
+				}
+			}
 		}
 
 		if (cursor < content.length) {
@@ -235,6 +271,8 @@ export class MiniMapRenderer extends Component {
 			.replace(/>\s*/g, '')
 			.replace(/\!\[[^\]]*\]\([^)]*\)/g, '')
 			.replace(/!\[\[[^\]]*\]\]/g, '')
+			.replace(/==\w+:[^=]+==/g, '') // Remove flags
+			.replace(/%%[^%]+%%/g, '') // Remove comments
 			.trim();
 	}
 

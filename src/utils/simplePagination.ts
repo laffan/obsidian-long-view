@@ -1,4 +1,4 @@
-import { DocumentHeading, DocumentPage } from './documentParser';
+import { DocumentHeading, DocumentPage, parseFlags } from './documentParser';
 
 /**
  * Simple, fast pagination: 500 words base, reduced for images
@@ -10,7 +10,7 @@ export function paginateDocument(text: string): DocumentPage[] {
 		return [];
 	}
 
-	const BASE_WORDS = 500; // Base words per page
+	const BASE_WORDS = 450; // Base words per page
 	const WORDS_PER_IMAGE = 100; // Reduce by this much per image
 
 	const pages: DocumentPage[] = [];
@@ -58,6 +58,7 @@ export function paginateDocument(text: string): DocumentPage[] {
 		const content = text.substring(startOffset, endOffset);
 
 		const headings = collectHeadings(content, startOffset);
+		const flags = parseFlags(content, startOffset);
 
 		pages.push({
 			content,
@@ -66,6 +67,7 @@ export function paginateDocument(text: string): DocumentPage[] {
 			endOffset,
 			pageNumber: pageNumber++,
 			headings,
+			flags,
 		});
 
 		currentWordIndex = endWordIndex;
