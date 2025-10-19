@@ -1,12 +1,19 @@
 import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { LongView, LONG_VIEW_TYPE } from './ui/LongView';
 import { LongViewSettings, DEFAULT_SETTINGS } from './settings';
+import { createFlagHighlightExtension, processRenderedFlags } from './flags/flagStyling';
 
 export default class LongViewPlugin extends Plugin {
 	settings: LongViewSettings;
 
 	async onload() {
 		await this.loadSettings();
+
+		// Style inline flags inside the main editor and reading view
+		this.registerEditorExtension(createFlagHighlightExtension());
+		this.registerMarkdownPostProcessor((element, context) => {
+			processRenderedFlags(element, context);
+		});
 
 		// Register the custom view
 		this.registerView(

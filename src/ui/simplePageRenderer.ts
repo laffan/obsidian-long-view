@@ -135,8 +135,6 @@ function renderStandaloneFlag(flagText: string, containerEl: HTMLElement, zoomLe
 	const flagTypeUpper = flagType.toUpperCase();
 	if (flagTypeUpper === 'MISSING') {
 		bar.addClass('is-missing-flag');
-		bar.style.backgroundColor = 'transparent';
-		bar.style.color = '#ff1f1f';
 	} else {
 		bar.style.backgroundColor = color;
 	}
@@ -231,13 +229,11 @@ function renderInlineFormatting(text: string, textContainerEl: HTMLElement, page
 			// Create a full-width bar in the page container (not inside the p/h tag)
 			const bar = pageContainerEl.createDiv({ cls: 'long-view-flag-bar' });
 			const flagTypeUpper = part.flagType?.toUpperCase();
-			if (flagTypeUpper === 'MISSING') {
-				bar.addClass('is-missing-flag');
-				bar.style.backgroundColor = 'transparent';
-				bar.style.color = '#ff1f1f';
-			} else {
-				bar.style.backgroundColor = part.color;
-			}
+		if (flagTypeUpper === 'MISSING') {
+			bar.addClass('is-missing-flag');
+		} else {
+			bar.style.backgroundColor = part.color;
+		}
 
 			// At low zoom, show just the bar without text for cleaner look, but make it taller
 			if (zoomLevel >= 20) {

@@ -316,6 +316,70 @@ img.long-view-minimap-image {
 	color: #ff1f1f;
 }
 
+/* Inline flag highlights (editor + reading view) */
+.markdown-preview-view mark.long-view-inline-flag,
+.cm-content .long-view-inline-flag {
+	border-radius: 3px;
+	padding: 0 4px;
+	font-weight: 500;
+	text-decoration: none;
+	background-color: transparent;
+}
+
+.markdown-preview-view mark.long-view-inline-flag:not(.is-missing-flag),
+.cm-content .long-view-inline-flag:not(.is-missing-flag) {
+	border: none;
+}
+
+.markdown-preview-view mark.long-view-inline-flag.long-view-inline-flag-todo,
+.cm-content .long-view-inline-flag.long-view-inline-flag-todo {
+	background-color: rgba(255, 215, 0, 0.28);
+	color: #4a3900;
+}
+
+.markdown-preview-view mark.long-view-inline-flag.long-view-inline-flag-now,
+.cm-content .long-view-inline-flag.long-view-inline-flag-now {
+	background-color: rgba(255, 68, 68, 0.28);
+	color: #5e0606;
+}
+
+.markdown-preview-view mark.long-view-inline-flag.long-view-inline-flag-done,
+.cm-content .long-view-inline-flag.long-view-inline-flag-done {
+	background-color: rgba(68, 255, 68, 0.25);
+	color: #064a06;
+}
+
+.markdown-preview-view mark.long-view-inline-flag.long-view-inline-flag-waiting,
+.cm-content .long-view-inline-flag.long-view-inline-flag-waiting {
+	background-color: rgba(255, 153, 68, 0.25);
+	color: #663206;
+}
+
+.markdown-preview-view mark.long-view-inline-flag.long-view-inline-flag-note,
+.cm-content .long-view-inline-flag.long-view-inline-flag-note {
+	background-color: rgba(68, 136, 255, 0.25);
+	color: #0a2f74;
+}
+
+.markdown-preview-view mark.long-view-inline-flag.long-view-inline-flag-important,
+.cm-content .long-view-inline-flag.long-view-inline-flag-important {
+	background-color: rgba(255, 68, 255, 0.25);
+	color: #600060;
+}
+
+.markdown-preview-view mark.long-view-inline-flag.long-view-inline-flag-comment,
+.cm-content .long-view-inline-flag.long-view-inline-flag-comment {
+	background-color: rgba(136, 136, 136, 0.25);
+	color: #2f2f2f;
+}
+
+.markdown-preview-view mark.long-view-inline-flag.is-missing-flag,
+.cm-content .long-view-inline-flag.is-missing-flag {
+	border: 1px dashed #ff4444;
+	background-color: rgba(255, 68, 68, 0.12);
+	color: #a10000;
+}
+
 .long-view-minimap-flag:hover {
 	opacity: 0.8;
 }
@@ -515,9 +579,14 @@ img.long-view-minimap-image {
 }
 
 .long-view-flag-bar.is-missing-flag {
-	border: 3px dashed #ff4444;
-	background-color: transparent;
+	border: 10px dashed #ff4444;
+	background-color: rgba(255, 68, 68, 0.12);
 	color: #ff1f1f;
+	min-height: 200px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
 }
 
 /* Taller flag bars for low zoom (< 20%) */
