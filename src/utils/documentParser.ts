@@ -17,6 +17,7 @@ export interface DocumentFlag {
 	message: string;
 	startOffset: number;
 	color: string;
+	lineText: string;
 }
 
 export interface DocumentPage {
@@ -137,6 +138,7 @@ export function getFlagColor(type: string): string {
 		'NOTE': '#4488ff',      // Blue
 		'IMPORTANT': '#ff44ff', // Magenta
 		'COMMENT': '#888888',   // Gray (for %% comments %%)
+		'MISSING': '#ff4444',   // Red (special handling)
 	};
 	return colorMap[typeUpper] || '#888888'; // Default gray
 }
@@ -157,12 +159,19 @@ export function parseFlags(content: string, baseOffset: number): DocumentFlag[] 
 		const message = match[2].trim();
 		const startOffset = baseOffset + match.index;
 		const color = getFlagColor(type);
+		const startOfLine = content.lastIndexOf('\n', match.index);
+		const endOfLine = content.indexOf('\n', match.index + match[0].length);
+		const lineText = content.substring(
+			startOfLine === -1 ? 0 : startOfLine + 1,
+			endOfLine === -1 ? content.length : endOfLine
+		).trim();
 
 		flags.push({
 			type,
 			message,
 			startOffset,
 			color,
+			lineText,
 		});
 	}
 
@@ -172,12 +181,19 @@ export function parseFlags(content: string, baseOffset: number): DocumentFlag[] 
 		const message = match[1].trim();
 		const startOffset = baseOffset + match.index;
 		const color = getFlagColor('COMMENT');
+		const startOfLine = content.lastIndexOf('\n', match.index);
+		const endOfLine = content.indexOf('\n', match.index + match[0].length);
+		const lineText = content.substring(
+			startOfLine === -1 ? 0 : startOfLine + 1,
+			endOfLine === -1 ? content.length : endOfLine
+		).trim();
 
 		flags.push({
 			type: 'COMMENT',
 			message,
 			startOffset,
 			color,
+			lineText,
 		});
 	}
 

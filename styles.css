@@ -304,6 +304,18 @@ img.long-view-minimap-image {
 	transition: opacity 0.15s ease;
 }
 
+.long-view-minimap-flag.is-missing-flag {
+	border: 1px dashed #ff4444;
+	background-color: transparent;
+	color: #ff1f1f;
+}
+
+.long-view-minimap-flag.is-missing-flag .long-view-minimap-flag-message {
+	white-space: normal;
+	overflow: visible;
+	color: #ff1f1f;
+}
+
 .long-view-minimap-flag:hover {
 	opacity: 0.8;
 }
@@ -500,6 +512,12 @@ img.long-view-minimap-image {
 	font-weight: 500;
 	box-sizing: border-box;
 	min-height: 8px; /* Ensure bar is visible even without text at low zoom */
+}
+
+.long-view-flag-bar.is-missing-flag {
+	border: 3px dashed #ff4444;
+	background-color: transparent;
+	color: #ff1f1f;
 }
 
 /* Taller flag bars for low zoom (< 20%) */

@@ -215,17 +215,36 @@ export class MiniMapRenderer extends Component {
 					imgEl.src = src;
 					imgEl.alt = fragment.alt || fragment.link;
 				} else if (fragment.type === 'flag') {
-					if (!flowEl) {
-						const calloutContainer = updateCalloutWrappers(currentCalloutStack);
-						flowEl = createSectionStructure(calloutContainer, currentLevel);
-					}
-					const flagInfo = fragment.flag;
-					const flagEl = flowEl.createDiv({ cls: 'long-view-minimap-flag' });
+				if (!flowEl) {
+					const calloutContainer = updateCalloutWrappers(currentCalloutStack);
+					flowEl = createSectionStructure(calloutContainer, currentLevel);
+				}
+				const flagInfo = fragment.flag;
+				const flagEl = flowEl.createDiv({ cls: 'long-view-minimap-flag' });
+				const flagTypeUpper = flagInfo.type.toUpperCase();
+				const isMissingFlag = flagTypeUpper === 'MISSING';
+				if (isMissingFlag) {
+					flagEl.addClass('is-missing-flag');
+					flagEl.style.backgroundColor = 'transparent';
+					flagEl.style.color = '#ff1f1f';
+				} else {
 					flagEl.style.backgroundColor = flagInfo.color;
+				}
 
-					// Show only the message, not the type name
-					const messagePreview = getFirstWords(flagInfo.message, 10);
-					const messageEl = flagEl.createSpan({ cls: 'long-view-minimap-flag-message', text: messagePreview });
+				// Show only the message, not the type name
+				let messageText: string;
+				if (isMissingFlag) {
+					const cleanedLine = flagInfo.lineText
+						?.trim()
+						.replace(/^==/, '')
+						.replace(/==$/, '')
+						.trim();
+					const withoutTitle = cleanedLine?.replace(/^MISSING:\s*/i, '').trim() ?? '';
+					messageText = withoutTitle.length > 0 ? withoutTitle : flagInfo.message;
+				} else {
+					messageText = getFirstWords(flagInfo.message, 10);
+				}
+				flagEl.createSpan({ cls: 'long-view-minimap-flag-message', text: messageText });
 
 					// Make flag clickable
 					flagEl.addEventListener('click', (event) => {

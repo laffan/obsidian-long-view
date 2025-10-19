@@ -114,26 +114,45 @@ function renderStandaloneFlag(flagText: string, containerEl: HTMLElement, zoomLe
 	// Extract message and determine color
 	let message = flagText;
 	let color = '#888888';
+	let flagType = '';
+	const fullLine = flagText.trim();
 
 	if (message.startsWith('==')) {
 		const match = message.match(/==(\w+):\s*([^=]+)==/);
 		if (match) {
-			const type = match[1];
+			flagType = match[1];
 			message = match[2].trim();
-			color = getFlagColor(type);
+			color = getFlagColor(flagType);
 		}
 	} else if (message.startsWith('%%')) {
 		message = message.replace(/^%%\s*/, '').replace(/%%$/, '').trim();
 		color = getFlagColor('COMMENT');
+		flagType = 'COMMENT';
 	}
 
 	// Create a full-width bar
 	const bar = containerEl.createDiv({ cls: 'long-view-flag-bar' });
-	bar.style.backgroundColor = color;
+	const flagTypeUpper = flagType.toUpperCase();
+	if (flagTypeUpper === 'MISSING') {
+		bar.addClass('is-missing-flag');
+		bar.style.backgroundColor = 'transparent';
+		bar.style.color = '#ff1f1f';
+	} else {
+		bar.style.backgroundColor = color;
+	}
 
 	// At low zoom, show just the bar without text for cleaner look, but make it taller
 	if (zoomLevel >= 20) {
-		bar.setText(message);
+		if (flagTypeUpper === 'MISSING') {
+			const cleaned = fullLine
+				.replace(/^==/, '')
+				.replace(/==$/, '')
+				.trim();
+			const withoutTitle = cleaned.replace(/^MISSING:\s*/i, '').trim();
+			bar.setText(withoutTitle.length > 0 ? withoutTitle : message);
+		} else {
+			bar.setText(message);
+		}
 	} else {
 		bar.addClass('long-view-flag-bar-low-zoom');
 	}
@@ -211,11 +230,22 @@ function renderInlineFormatting(text: string, textContainerEl: HTMLElement, page
 
 			// Create a full-width bar in the page container (not inside the p/h tag)
 			const bar = pageContainerEl.createDiv({ cls: 'long-view-flag-bar' });
-			bar.style.backgroundColor = part.color;
+			const flagTypeUpper = part.flagType?.toUpperCase();
+			if (flagTypeUpper === 'MISSING') {
+				bar.addClass('is-missing-flag');
+				bar.style.backgroundColor = 'transparent';
+				bar.style.color = '#ff1f1f';
+			} else {
+				bar.style.backgroundColor = part.color;
+			}
 
 			// At low zoom, show just the bar without text for cleaner look, but make it taller
 			if (zoomLevel >= 20) {
-				bar.setText(message);
+				if (flagTypeUpper === 'MISSING') {
+					bar.setText(message);
+				} else {
+					bar.setText(message);
+				}
 			} else {
 				bar.addClass('long-view-flag-bar-low-zoom');
 			}
@@ -233,6 +263,7 @@ function getFlagColor(type: string): string {
 		'NOTE': '#4488ff',      // Blue
 		'IMPORTANT': '#ff44ff', // Magenta
 		'COMMENT': '#888888',   // Gray
+		'MISSING': '#ff4444',   // Red (special handling)
 	};
 	return colorMap[typeUpper] || '#888888';
 }
