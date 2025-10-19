@@ -210,7 +210,6 @@
 	white-space: normal;
 	overflow: visible;
 	word-break: break-word;
-	max-width: 100px;
 	margin: 0;
 }
 
@@ -291,17 +290,16 @@ img.long-view-minimap-image {
 
 /* Minimap flags */
 .long-view-minimap-flag {
-	display: flex;
-	gap: 4px;
-	align-items: center;
-	padding: 2px 4px;
-	border-radius: 2px;
-	margin: 2px 0;
-	width: fit-content;
-	max-width: 100px;
-	pointer-events: auto;
-	cursor: pointer;
-	transition: opacity 0.15s ease;
+ 	display: flex;
+ 	gap: 4px;
+ 	align-items: center;
+ 	padding: 2px 4px;
+ 	border-radius: 2px;
+ 	margin: 2px 0;
+ 	width: fit-content;
+ 	pointer-events: auto;
+ 	cursor: pointer;
+ 	transition: opacity 0.15s ease;
 }
 
 .long-view-minimap-flag.is-missing-flag {
