@@ -104,7 +104,7 @@ export class LongViewSettingTab extends PluginSettingTab {
 		step: number,
 		unit: string,
 	): void {
-		const setting = new Setting(parent).setName(label).setDesc(`Range ${min}-${max}${unit}`);
+		const setting = new Setting(parent).setName(label).setDesc(`Allowed range: ${min}-${max}${unit}`);
 
 		setting.addText((text) => {
 			text.inputEl.type = 'number';
@@ -114,16 +114,14 @@ export class LongViewSettingTab extends PluginSettingTab {
 			text.setValue(this.plugin.settings.minimapFontSizes[key].toString());
 			text.onChange(async (value) => {
 				const numericValue = parseFloat(value);
-				if (Number.isNaN(numericValue)) {
+				if (Number.isNaN(numericValue) || numericValue < min || numericValue > max) {
+					text.inputEl.classList.add('long-view-input-invalid');
 					return;
 				}
-				const clamped = Math.min(max, Math.max(min, numericValue));
-				this.plugin.settings.minimapFontSizes[key] = clamped;
+				text.inputEl.classList.remove('long-view-input-invalid');
+				this.plugin.settings.minimapFontSizes[key] = numericValue;
 				await this.plugin.saveSettings();
 				await this.plugin.refreshOpenViews();
-				if (clamped !== numericValue) {
-					text.setValue(clamped.toString());
-				}
 			});
 		});
 	}

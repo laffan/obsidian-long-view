@@ -132,10 +132,10 @@ export default class LongViewPlugin extends Plugin {
 				continue;
 			}
 
-				const minimapBg = color;
-				const pagedBg = color;
-				const inlineBg = color;
-				const minimapText = type === 'COMMENT' ? 'var(--text-normal)' : textColor;
+			const minimapBg = color;
+			const pagedBg = color;
+			const inlineBg = color;
+			const minimapText = 'var(--text-normal)';
 				const pagedText = type === 'COMMENT' ? 'var(--text-normal)' : textColor;
 				const inlineText = type === 'COMMENT' ? 'var(--text-normal)' : textColor;
 			css += `
