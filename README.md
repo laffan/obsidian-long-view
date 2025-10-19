@@ -21,7 +21,7 @@ A zoomable grid of letter-size pages (450 words each) with:
 - **Fast rendering** – Simplified markdown parser for smooth performance
 - **Click navigation** – Click any page or flag to jump the editor
 
-## Flag System
+## Line Flag System (Highlights)
 
 Long View recognizes and visualizes task flags and comments:
 
@@ -34,6 +34,12 @@ Long View recognizes and visualizes task flags and comments:
 - `%% comment %%` → Gray
 
 Flags appear as clickable indicators in both modes, adapting their display to zoom level and view type.
+
+## Section Flag System (Callouts)
+
+Long view can also add flags to whole sections of the document using the markdown heading structure. This tints the background of the section in both views.
+
+To add a section flag, the line immediately following the heading in question must be an Obsidian callout. Coloring follows obsidian's existing scheme, as described here : https://help.obsidian.md/callouts .  In minimap mode, the callout title (but not content block) shows up as .5 opacity text immediately below the heading.
 
 ## Using Long View
 

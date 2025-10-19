@@ -4,18 +4,72 @@
  */
 
 import { App, TFile } from 'obsidian';
+import { DocumentHeading } from '../utils/documentParser';
 
 export function renderPageContent(
 	content: string,
 	containerEl: HTMLElement,
 	zoomLevel: number = 15,
 	app?: App,
-	sourcePath?: string
+	sourcePath?: string,
+	headings?: DocumentHeading[],
+	headingCalloutStacks?: Map<number, Array<{ color: string }>>
 ): void {
 	const lines = content.split('\n');
 
+	// Build a map of line positions to heading info and their callout stacks
+	const headingMap = new Map<number, { heading: DocumentHeading; stack: Array<{ color: string }> }>();
+	if (headings && headingCalloutStacks) {
+		for (const heading of headings) {
+			// Find which line this heading is on within the content
+			for (let i = 0; i < lines.length; i++) {
+				if (lines[i].trim().startsWith('#') && lines[i].includes(heading.text)) {
+					const stack = headingCalloutStacks.get(heading.startOffset) || [];
+					headingMap.set(i, { heading, stack });
+					break;
+				}
+			}
+		}
+	}
+
+	// Helper to create wrapper structure for callout stack
+	const createWrapperStructure = (stack: Array<{ color: string }>): HTMLElement => {
+		let container = containerEl;
+		for (const callout of stack) {
+			const wrapper = container.createDiv({ cls: 'long-view-page-callout-bg' });
+			// Use rgba with 0.15 alpha for semi-transparent background
+			const rgbMatch = callout.color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+			if (rgbMatch) {
+				const [, r, g, b] = rgbMatch;
+				wrapper.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.15)`;
+			} else {
+				wrapper.style.backgroundColor = callout.color;
+				wrapper.style.opacity = '0.15';
+			}
+			container = wrapper;
+		}
+		return container;
+	};
+
+	// Now render with wrapper divs
+	let currentLine = 0;
+	let currentCalloutStack: Array<{ color: string }> = [];
+	let renderTarget = containerEl;
+
 	for (const line of lines) {
+		// Check if this line has a heading that changes the callout stack
+		const headingInfo = headingMap.get(currentLine);
+		if (headingInfo) {
+			// Stack changed - create new wrapper structure
+			const stackChanged = JSON.stringify(headingInfo.stack) !== JSON.stringify(currentCalloutStack);
+			if (stackChanged) {
+				currentCalloutStack = headingInfo.stack;
+				renderTarget = createWrapperStructure(currentCalloutStack);
+			}
+		}
+
 		const trimmed = line.trim();
+		currentLine++;
 
 		// Skip empty lines
 		if (trimmed.length === 0) {
@@ -26,7 +80,7 @@ export function renderPageContent(
 		const standaloneFlag = /^(==(\w+):[^=]+==|%%[^%]+%%)$/.test(trimmed);
 		if (standaloneFlag) {
 			// Render as bar at all zoom levels
-			renderStandaloneFlag(trimmed, containerEl, zoomLevel);
+			renderStandaloneFlag(trimmed, renderTarget, zoomLevel);
 			continue;
 		}
 
@@ -36,8 +90,8 @@ export function renderPageContent(
 			const level = headingMatch[1].length;
 			const text = headingMatch[2];
 			const tagName = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
-			const headingEl = containerEl.createEl(tagName);
-			renderInlineFormatting(text, headingEl, containerEl, zoomLevel);
+			const headingEl = renderTarget.createEl(tagName);
+			renderInlineFormatting(text, headingEl, renderTarget, zoomLevel);
 			continue;
 		}
 
@@ -45,14 +99,14 @@ export function renderPageContent(
 		const imageMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)|^!\[\[([^|\]]+)(?:\|([^\]]*))?\]\]$/);
 		if (imageMatch) {
 			if (app && sourcePath) {
-				renderImage(imageMatch, containerEl, app, sourcePath);
+				renderImage(imageMatch, renderTarget, app, sourcePath);
 			}
 			continue;
 		}
 
 		// Render as paragraph with basic inline formatting
-		const p = containerEl.createEl('p');
-		renderInlineFormatting(trimmed, p, containerEl, zoomLevel);
+		const p = renderTarget.createEl('p');
+		renderInlineFormatting(trimmed, p, renderTarget, zoomLevel);
 	}
 }
 

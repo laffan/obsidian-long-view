@@ -267,6 +267,25 @@ img.long-view-minimap-image {
 	color: var(--interactive-accent);
 }
 
+/* Minimap callout background wrapper for section tinting */
+.long-view-minimap-callout-bg {
+	border-radius: 4px;
+	padding: 4px;
+}
+
+/* Minimap callout title */
+.long-view-minimap-callout-title {
+	display: block;
+	font-size: 10px;
+	color: var(--text-muted);
+	opacity: 0.5;
+	margin: 1px 0 2px 0;
+	font-style: italic;
+	white-space: normal;
+	word-break: break-word;
+	overflow: visible;
+}
+
 /* Minimap flags */
 .long-view-minimap-flag {
 	display: flex;
@@ -458,6 +477,13 @@ img.long-view-minimap-image {
 	height: auto;
 	display: block;
 	margin: 1em 0;
+}
+
+/* Callout background wrapper for paged view section tinting */
+.long-view-page-callout-bg {
+	border-radius: 6px;
+	padding: 8px;
+	margin: 4px 0;
 }
 
 /* Inline flag bars - shown at all zoom levels */

@@ -1,4 +1,4 @@
-import { DocumentHeading, DocumentPage, parseFlags } from './documentParser';
+import { DocumentHeading, DocumentPage, DocumentCallout, parseFlags, parseCallout } from './documentParser';
 
 /**
  * Simple, fast pagination: 500 words base, reduced for images
@@ -90,10 +90,29 @@ function collectHeadings(content: string, startOffset: number): DocumentHeading[
 	while ((match = headingPattern.exec(content)) !== null) {
 		const level = match[0].match(/^#+/)?.[0].length ?? 1;
 		const text = match[0].replace(/^#{1,6}\s*/, '').trim();
+		const headingOffset = startOffset + match.index;
+
+		// Check if the next non-empty line is a callout
+		const afterHeading = content.substring(match.index + match[0].length);
+		const nextLineMatch = afterHeading.match(/^\n*([^\n]*)/);
+		let callout: DocumentCallout | undefined = undefined;
+
+		if (nextLineMatch && nextLineMatch[1].trim()) {
+			const nextLine = nextLineMatch[1].trim();
+			if (nextLine.startsWith('> [!')) {
+				// Parse the callout
+				const parsedCallout = parseCallout(nextLine, headingOffset);
+				if (parsedCallout) {
+					callout = parsedCallout;
+				}
+			}
+		}
+
 		headings.push({
 			level,
 			text,
-			startOffset: startOffset + match.index,
+			startOffset: headingOffset,
+			callout,
 		});
 	}
 

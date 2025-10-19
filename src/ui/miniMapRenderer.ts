@@ -1,5 +1,5 @@
 import { App, Component, TFile } from 'obsidian';
-import { DocumentHeading, DocumentPage, DocumentFlag, getFirstWords } from '../utils/documentParser';
+import { DocumentHeading, DocumentPage, DocumentFlag, getFirstWords, computeHeadingCalloutStacks } from '../utils/documentParser';
 
 export interface MiniMapOptions {
 	app: App;
@@ -31,6 +31,8 @@ export class MiniMapRenderer extends Component {
 	private headingEntries: Array<{ offset: number; element: HTMLElement }> = [];
 	private activeHeadingEl: HTMLElement | null = null;
 	private currentHeadingLevel: number = 0;
+	// Map from heading offset to its callout stack
+	private headingCalloutStacks: Map<number, Array<{ color: string }>> = new Map();
 
 	constructor(options: MiniMapOptions) {
 		super();
@@ -41,6 +43,7 @@ export class MiniMapRenderer extends Component {
 		this.pages = pages;
 		this.cleanup();
 		this.computeHeadingNumbers();
+		this.computeHeadingCalloutStacks();
 		this.currentHeadingLevel = 0;
 
 		this.minimapRootEl = this.options.containerEl.createDiv({ cls: 'long-view-minimap' });
@@ -75,32 +78,60 @@ export class MiniMapRenderer extends Component {
 	}
 
 	private renderSection(sectionEl: HTMLElement, page: DocumentPage): void {
-		// Determine indentation level for this section
-		// If the page has headings, use the first heading's level
-		// Otherwise, maintain the current level
-		let sectionLevel = this.currentHeadingLevel;
-		if (page.headings && page.headings.length > 0) {
-			sectionLevel = page.headings[0].level;
-		}
-
 		const contentEl = sectionEl.createDiv({ cls: 'long-view-minimap-section-content' });
 
-		// Create nested divs for hierarchy bars (one for each nesting level)
-		// Each hierarchy div provides 8px padding, which gives us the visual indentation
-		let containerEl = contentEl;
-		for (let level = 2; level <= sectionLevel; level++) {
-			const hierarchyDiv = containerEl.createDiv({ cls: 'long-view-minimap-hierarchy-level' });
-			containerEl = hierarchyDiv;
-		}
+		// Track current state for rendering
+		let currentCalloutStack: Array<{ color: string }> = [];
+		let currentLevel = this.currentHeadingLevel;
+		let flowEl: HTMLElement | null = null;
 
-		const flowEl = containerEl.createDiv({ cls: 'long-view-minimap-section-body' });
+		// Helper to create wrapper structure for current state
+		const createWrapperStructure = (calloutStack: Array<{ color: string }>, level: number): HTMLElement => {
+			let container = contentEl;
+
+			// Apply nested callout backgrounds (outer to inner)
+			for (const callout of calloutStack) {
+				const calloutWrapper = container.createDiv({ cls: 'long-view-minimap-callout-bg' });
+				const rgbMatch = callout.color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+				if (rgbMatch) {
+					const [, r, g, b] = rgbMatch;
+					calloutWrapper.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.15)`;
+				} else {
+					calloutWrapper.style.backgroundColor = callout.color;
+					calloutWrapper.style.opacity = '0.15';
+				}
+				container = calloutWrapper;
+			}
+
+			// Create nested divs for hierarchy bars
+			for (let l = 2; l <= level; l++) {
+				const hierarchyDiv = container.createDiv({ cls: 'long-view-minimap-hierarchy-level' });
+				container = hierarchyDiv;
+			}
+
+			return container.createDiv({ cls: 'long-view-minimap-section-body' });
+		};
 
 		try {
 			const fragments = this.tokenizeContent(page);
 			for (const fragment of fragments) {
 				if (fragment.type === 'heading') {
 					const headingInfo = fragment.heading;
-					// Update current heading level
+
+					// Get the callout stack for this heading
+					const headingStack = this.headingCalloutStacks.get(headingInfo.startOffset) || [];
+
+					// Check if we need new wrappers (stack or level changed)
+					const stackChanged = JSON.stringify(headingStack) !== JSON.stringify(currentCalloutStack);
+					const levelChanged = headingInfo.level !== currentLevel;
+
+					if (stackChanged || levelChanged || !flowEl) {
+						currentCalloutStack = headingStack;
+						currentLevel = headingInfo.level;
+						flowEl = createWrapperStructure(currentCalloutStack, currentLevel);
+					}
+
+					// Update current heading level for next iteration
 					this.currentHeadingLevel = headingInfo.level;
 
 					const numbering = this.headingNumberMap.get(headingInfo.startOffset);
@@ -114,7 +145,17 @@ export class MiniMapRenderer extends Component {
 						this.options.onHeadingClick?.(headingInfo.startOffset);
 					});
 					this.headingEntries.push({ offset: headingInfo.startOffset, element: headingEl });
+
+					// If this heading has a callout, display the callout title below it at 0.5 opacity
+					if (headingInfo.callout) {
+						const calloutTitleEl = flowEl.createDiv({ cls: 'long-view-minimap-callout-title' });
+						calloutTitleEl.setText(headingInfo.callout.title);
+					}
 				} else if (fragment.type === 'text') {
+					// Ensure we have a flowEl for content before any heading
+					if (!flowEl) {
+						flowEl = createWrapperStructure(currentCalloutStack, currentLevel);
+					}
 					// Only render paragraphs if the setting is enabled
 					const showParagraphs = this.options.showParagraphs !== false;
 					if (showParagraphs) {
@@ -127,6 +168,9 @@ export class MiniMapRenderer extends Component {
 						}
 					}
 				} else if (fragment.type === 'image') {
+					if (!flowEl) {
+						flowEl = createWrapperStructure(currentCalloutStack, currentLevel);
+					}
 					const src = this.resolveImageSrc(fragment.link);
 					if (!src) {
 						continue;
@@ -135,6 +179,9 @@ export class MiniMapRenderer extends Component {
 					imgEl.src = src;
 					imgEl.alt = fragment.alt || fragment.link;
 				} else if (fragment.type === 'flag') {
+					if (!flowEl) {
+						flowEl = createWrapperStructure(currentCalloutStack, currentLevel);
+					}
 					const flagInfo = fragment.flag;
 					const flagEl = flowEl.createDiv({ cls: 'long-view-minimap-flag' });
 					flagEl.style.backgroundColor = flagInfo.color;
@@ -377,6 +424,10 @@ export class MiniMapRenderer extends Component {
 		}
 	}
 
+	private computeHeadingCalloutStacks(): void {
+		this.headingCalloutStacks = computeHeadingCalloutStacks(this.pages);
+	}
+
 	private setActiveHeading(element: HTMLElement | null): void {
 		if (this.activeHeadingEl === element) {
 			return;
@@ -428,6 +479,7 @@ export class MiniMapRenderer extends Component {
 	cleanup(): void {
 		this.sections = [];
 		this.headingNumberMap.clear();
+		this.headingCalloutStacks.clear();
 		this.headingEntries = [];
 		this.activeHeadingEl = null;
 		this.currentHeadingLevel = 0;

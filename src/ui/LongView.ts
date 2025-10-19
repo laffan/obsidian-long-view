@@ -1,5 +1,5 @@
 import { ItemView, MarkdownView, TFile, WorkspaceLeaf } from 'obsidian';
-import { DocumentPage, getFirstWords } from '../utils/documentParser';
+import { DocumentPage, getFirstWords, computeHeadingCalloutStacks } from '../utils/documentParser';
 import { paginateDocument } from '../utils/simplePagination';
 import { MiniMapRenderer } from './miniMapRenderer';
 import { renderPageContent } from './simplePageRenderer';
@@ -277,6 +277,9 @@ export class LongView extends ItemView {
 		grid.style.transform = `scale(${scale})`;
 		grid.style.transformOrigin = 'top left';
 
+		// Compute callout stacks for all headings once
+		const headingCalloutStacks = computeHeadingCalloutStacks(this.pages);
+
 		for (const page of this.pages) {
 			const pageEl = grid.createDiv({ cls: 'long-view-page' });
 			pageEl.setAttribute('data-page', String(page.pageNumber));
@@ -293,7 +296,7 @@ export class LongView extends ItemView {
 
 			// Use simple fast renderer instead of full MarkdownRenderer
 			try {
-				renderPageContent(page.content, contentEl, this.currentZoom, this.app, file.path);
+				renderPageContent(page.content, contentEl, this.currentZoom, this.app, file.path, page.headings, headingCalloutStacks);
 			} catch (error) {
 				console.error('Long View: Error rendering page:', error);
 				// Fallback to plain text if rendering fails

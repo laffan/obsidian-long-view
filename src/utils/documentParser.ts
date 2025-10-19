@@ -1,7 +1,15 @@
+export interface DocumentCallout {
+	type: string;
+	title: string;
+	color: string;
+	startOffset: number;
+}
+
 export interface DocumentHeading {
 	level: number;
 	text: string;
 	startOffset: number;
+	callout?: DocumentCallout;
 }
 
 export interface DocumentFlag {
@@ -142,4 +150,105 @@ export function parseFlags(content: string, baseOffset: number): DocumentFlag[] 
 export function getFirstWords(message: string, wordCount: number): string {
 	const words = message.trim().split(/\s+/);
 	return words.slice(0, wordCount).join(' ') + (words.length > wordCount ? '...' : '');
+}
+
+/**
+ * Map callout type to RGB color
+ * Based on Obsidian's default callout color scheme
+ */
+export function getCalloutColor(type: string): string {
+	const typeLower = type.toLowerCase();
+	const colorMap: Record<string, string> = {
+		'bug': 'rgb(233, 49, 71)',
+		'default': 'rgb(8, 109, 221)',
+		'error': 'rgb(233, 49, 71)',
+		'fail': 'rgb(233, 49, 71)',
+		'example': 'rgb(120, 82, 238)',
+		'important': 'rgb(0, 191, 188)',
+		'info': 'rgb(8, 109, 221)',
+		'question': 'rgb(236, 117, 0)',
+		'help': 'rgb(236, 117, 0)',
+		'faq': 'rgb(236, 117, 0)',
+		'success': 'rgb(8, 185, 78)',
+		'check': 'rgb(8, 185, 78)',
+		'done': 'rgb(8, 185, 78)',
+		'summary': 'rgb(0, 191, 188)',
+		'abstract': 'rgb(0, 191, 188)',
+		'tldr': 'rgb(0, 191, 188)',
+		'tip': 'rgb(0, 191, 188)',
+		'hint': 'rgb(0, 191, 188)',
+		'todo': 'rgb(8, 109, 221)',
+		'warning': 'rgb(236, 117, 0)',
+		'caution': 'rgb(236, 117, 0)',
+		'attention': 'rgb(236, 117, 0)',
+		'danger': 'rgb(233, 49, 71)',
+		'note': 'rgb(8, 109, 221)',
+		'quote': 'rgb(120, 82, 238)',
+		'cite': 'rgb(120, 82, 238)',
+	};
+	return colorMap[typeLower] || 'rgb(8, 109, 221)'; // Default to blue
+}
+
+/**
+ * Parse callout from text starting at a given position
+ * Returns callout info if found, null otherwise
+ * Format: > [!type] Title
+ */
+export function parseCallout(text: string, startOffset: number): DocumentCallout | null {
+	// Match callout syntax: > [!type] optional title
+	// The callout can have + or - for foldable, which we ignore
+	const calloutPattern = /^>\s*\[!([^\]]+)\]([+-]?)\s*(.*)$/m;
+	const match = text.match(calloutPattern);
+
+	if (!match) {
+		return null;
+	}
+
+	const type = match[1].trim();
+	const title = match[3].trim() || type.charAt(0).toUpperCase() + type.slice(1); // Default title is capitalized type
+	const color = getCalloutColor(type);
+
+	return {
+		type,
+		title,
+		color,
+		startOffset,
+	};
+}
+
+/**
+ * Compute callout stacks for all headings in document pages
+ * Returns a map from heading offset to its active callout stack
+ */
+export function computeHeadingCalloutStacks(pages: DocumentPage[]): Map<number, Array<{ color: string }>> {
+	const stackMap = new Map<number, Array<{ color: string }>>();
+	const calloutStack: Array<{ level: number; color: string }> = [];
+
+	// Process all headings in document order
+	for (const page of pages) {
+		if (!page.headings) continue;
+
+		for (const heading of page.headings) {
+			// Remove callouts from stack at same or higher level
+			const newStack = calloutStack.filter(c => c.level < heading.level);
+			calloutStack.length = 0;
+			calloutStack.push(...newStack);
+
+			// Add this heading's callout if present
+			if (heading.callout) {
+				calloutStack.push({
+					level: heading.level,
+					color: heading.callout.color
+				});
+			}
+
+			// Store the current stack for this heading (copy it)
+			stackMap.set(
+				heading.startOffset,
+				calloutStack.map(c => ({ color: c.color }))
+			);
+		}
+	}
+
+	return stackMap;
 }
