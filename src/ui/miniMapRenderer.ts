@@ -12,6 +12,7 @@ export interface MiniMapOptions {
 	numberSections?: boolean;
 	minimapFonts: MinimapFontSettings;
 	minimapLineGap: number;
+	includeComments: boolean;
 }
 
 interface RenderedSection {
@@ -40,12 +41,14 @@ export class MiniMapRenderer extends Component {
 	private headingCalloutStacks: Map<number, Array<{ color: string }>> = new Map();
 	private minimapFonts: MinimapFontSettings;
 	private minimapLineGap: number;
+	private includeComments: boolean;
 
 	constructor(options: MiniMapOptions) {
 		super();
 		this.options = options;
 		this.minimapFonts = options.minimapFonts;
 		this.minimapLineGap = options.minimapLineGap;
+		this.includeComments = options.includeComments;
 	}
 
 	async initialize(pages: DocumentPage[]): Promise<void> {
@@ -76,7 +79,11 @@ export class MiniMapRenderer extends Component {
 		const sectionEl = document.createElement('div');
 		sectionEl.dataset.start = String(page.startOffset);
 		sectionEl.dataset.end = String(page.endOffset);
-		sectionEl.addEventListener('click', (event) => {
+		sectionEl.addEventListener('pointerdown', (event) => {
+			if ((event as PointerEvent).button !== 0) {
+				return;
+			}
+			event.preventDefault();
 			const rect = sectionEl.getBoundingClientRect();
 			const relativeY = event.clientY - rect.top;
 			const ratio = rect.height > 0 ? Math.min(1, Math.max(0, relativeY / rect.height)) : 0;
@@ -180,7 +187,10 @@ export class MiniMapRenderer extends Component {
 
 					headingEl.dataset.offset = String(headingInfo.startOffset);
 					headingEl.dataset.level = String(headingInfo.level);
-					headingEl.addEventListener('click', (event) => {
+					headingEl.addEventListener('pointerdown', (event: PointerEvent) => {
+						if (event.button !== 0) {
+							return;
+						}
 						event.preventDefault();
 						event.stopPropagation();
 						this.options.onHeadingClick?.(headingInfo.startOffset);
@@ -222,6 +232,9 @@ export class MiniMapRenderer extends Component {
 					imgEl.src = src;
 					imgEl.alt = fragment.alt || fragment.link;
 				} else if (fragment.type === 'flag') {
+					if (!this.includeComments && fragment.flag.type.toUpperCase() === 'COMMENT') {
+						continue;
+					}
 					if (!flowEl) {
 						const calloutContainer = updateCalloutWrappers(currentCalloutStack);
 						flowEl = createSectionStructure(calloutContainer, currentLevel);
@@ -255,7 +268,10 @@ export class MiniMapRenderer extends Component {
 					flagEl.createSpan({ cls: 'long-view-minimap-flag-message', text: messageText });
 
 					// Make flag clickable
-					flagEl.addEventListener('click', (event) => {
+					flagEl.addEventListener('pointerdown', (event: PointerEvent) => {
+						if (event.button !== 0) {
+							return;
+						}
 						event.preventDefault();
 						event.stopPropagation();
 						this.options.onHeadingClick?.(flagInfo.startOffset);

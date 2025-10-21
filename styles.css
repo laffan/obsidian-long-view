@@ -422,7 +422,7 @@ img.long-view-minimap-image {
 
 .long-view-minimap-flag-message {
 	font-size: var(--long-view-minimap-flag-font-size, 12px);
-	color: var(--text-normal);
+	color: inherit;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -442,6 +442,10 @@ img.long-view-minimap-image {
 .long-view-input-invalid {
 	border-color: var(--color-red, #ff3333) !important;
 	color: var(--color-red, #ff3333) !important;
+}
+
+.cm-content .cm-highlight:has(.long-view-inline-flag) {
+	background-color: transparent !important;
 }
 
 /* Empty state */
@@ -712,4 +716,8 @@ img.long-view-minimap-image {
 .long-view-minimap-section-content hr,
 .long-view-minimap-section-content table {
 	display: none;
+}
+.long-view-comment-settings {
+	border-top: 1px solid var(--background-modifier-border);
+	padding-top: 8px;
 }

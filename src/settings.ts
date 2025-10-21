@@ -15,6 +15,7 @@ export interface LongViewSettings {
 	viewMode: ViewMode;
 	showParagraphsInMinimap: boolean;
 	numberSections: boolean;
+	includeCommentsInMinimap: boolean;
 	flagColors: FlagColorMap;
 	minimapFontSizes: MinimapFontSettings;
 	minimapLineGap: number;
@@ -36,6 +37,7 @@ export const DEFAULT_SETTINGS: LongViewSettings = {
 	viewMode: 'minimap',
 	showParagraphsInMinimap: true,
 	numberSections: true,
+	includeCommentsInMinimap: true,
 	flagColors: { ...DEFAULT_FLAG_COLORS },
 	minimapFontSizes: {
 		body: 3,

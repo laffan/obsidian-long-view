@@ -271,6 +271,7 @@ export class LongView extends ItemView {
 			numberSections: this.plugin.settings.numberSections,
 			minimapFonts: this.plugin.settings.minimapFontSizes,
 			minimapLineGap: this.plugin.settings.minimapLineGap,
+			includeComments: this.plugin.settings.includeCommentsInMinimap,
 		});
 
 		await this.minimapRenderer.initialize(this.minimapSections);

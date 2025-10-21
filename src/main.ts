@@ -1,4 +1,5 @@
 import { Plugin, WorkspaceLeaf } from 'obsidian';
+import chroma from './utils/chroma';
 import { LongView, LONG_VIEW_TYPE } from './ui/LongView';
 import { LongViewSettings, DEFAULT_SETTINGS, DEFAULT_FLAG_COLORS } from './settings';
 import { createFlagHighlightExtension, processRenderedFlags } from './flags/flagStyling';
@@ -84,6 +85,9 @@ export default class LongViewPlugin extends Plugin {
 		this.settings.flagColors = Object.assign({}, DEFAULT_FLAG_COLORS, persisted?.flagColors ?? {});
 		this.settings.minimapFontSizes = Object.assign({}, DEFAULT_SETTINGS.minimapFontSizes, persisted?.minimapFontSizes ?? {});
 		this.settings.minimapLineGap = typeof persisted?.minimapLineGap === 'number' ? persisted.minimapLineGap : DEFAULT_SETTINGS.minimapLineGap;
+		if (typeof persisted?.includeCommentsInMinimap !== 'boolean') {
+			this.settings.includeCommentsInMinimap = DEFAULT_SETTINGS.includeCommentsInMinimap;
+		}
 	}
 
 	async saveSettings() {
@@ -123,60 +127,48 @@ export default class LongViewPlugin extends Plugin {
 			if (type === 'MISSING') {
 				const borderColor = color;
 				const bg = toRgba(color, 0.12);
-				const inlineBg = toRgba(color, 0.18);
+				const inlineBg = 'transparent';
+				const missingText = color;
 				css += `
-.long-view-minimap-flag.is-missing-flag { border-color: ${borderColor}; color: ${borderColor}; }
-.long-view-flag-bar.is-missing-flag { border-color: ${borderColor}; background-color: ${bg}; color: ${textColor}; }
-.markdown-preview-view mark.long-view-inline-flag.is-missing-flag,
-.cm-content .long-view-inline-flag.is-missing-flag { border-color: ${borderColor}; background-color: ${inlineBg} !important; color: ${textColor} !important; }
-`;
-				continue;
-			}
+	.long-view-minimap-flag.is-missing-flag { border-color: ${borderColor}; color: ${missingText}; }
+	.long-view-minimap-flag.is-missing-flag .long-view-minimap-flag-message { color: ${missingText}; }
+	.long-view-flag-bar.is-missing-flag { border-color: ${borderColor}; background-color: ${bg}; color: ${missingText}; }
+	.markdown-preview-view mark.long-view-inline-flag.is-missing-flag,
+	.cm-content .long-view-inline-flag.is-missing-flag { border-color: ${borderColor}; background-color: ${inlineBg} !important; color: ${missingText} !important; }
+	`;
+					continue;
+				}
 
 			const minimapBg = color;
 			const pagedBg = color;
 			const inlineBg = color;
-			const minimapText = 'var(--text-normal)';
-				const pagedText = type === 'COMMENT' ? 'var(--text-normal)' : textColor;
-				const inlineText = type === 'COMMENT' ? 'var(--text-normal)' : textColor;
 			css += `
-.long-view-minimap-flag.long-view-flag-type-${typeLower} { background-color: ${minimapBg}; color: ${minimapText}; }
-.long-view-page-content .long-view-flag-bar.long-view-flag-type-${typeLower} { background-color: ${pagedBg}; color: ${pagedText}; }
-.markdown-preview-view mark.long-view-inline-flag.long-view-inline-flag-${typeLower},
-.cm-content .long-view-inline-flag.long-view-inline-flag-${typeLower} { background-color: ${inlineBg} !important; color: ${inlineText} !important; }
-`;
+	.long-view-minimap-flag.long-view-flag-type-${typeLower} { background-color: ${minimapBg}; color: ${textColor}; }
+	.long-view-minimap-flag.long-view-flag-type-${typeLower} .long-view-minimap-flag-message { color: ${textColor}; }
+	.long-view-page-content .long-view-flag-bar.long-view-flag-type-${typeLower} { background-color: ${pagedBg}; color: ${textColor}; }
+	.markdown-preview-view mark.long-view-inline-flag.long-view-inline-flag-${typeLower},
+	.cm-content .long-view-inline-flag.long-view-inline-flag-${typeLower} { background-color: ${inlineBg} !important; color: ${textColor} !important; }
+	`;
 			}
 		return css;
 	}
 }
 
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-	const sanitized = hex.trim().replace('#', '');
-	if (sanitized.length !== 6) {
-		return null;
-	}
-	const r = parseInt(sanitized.substring(0, 2), 16);
-	const g = parseInt(sanitized.substring(2, 4), 16);
-	const b = parseInt(sanitized.substring(4, 6), 16);
-	if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
-		return null;
-	}
-	return { r, g, b };
-}
-
 function toRgba(hex: string, alpha: number): string {
-	const rgb = hexToRgb(hex);
-	if (!rgb) {
+	try {
+		return chroma(hex).alpha(alpha).css();
+	} catch (error) {
 		return hex;
 	}
-	return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
 }
 
 function getContrastingTextColor(hex: string): string {
-	const rgb = hexToRgb(hex);
-	if (!rgb) {
+	try {
+		const color = chroma(hex);
+		const contrastWhite = chroma.contrast(color, '#ffffff');
+		const contrastBlack = chroma.contrast(color, '#1a1a1a');
+		return contrastWhite >= contrastBlack ? '#ffffff' : '#1a1a1a';
+	} catch (error) {
 		return '#1a1a1a';
 	}
-	const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
-	return luminance > 0.65 ? '#1a1a1a' : '#f5f5f5';
 }

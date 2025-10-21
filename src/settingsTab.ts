@@ -35,10 +35,13 @@ export class LongViewSettingTab extends PluginSettingTab {
 			}
 			this.addFlagColorSetting(section, meta);
 		});
-		// Include missing and comment at the end for clarity
-		FLAG_METADATA.filter((meta) => meta.type === 'COMMENT' || meta.type === 'MISSING').forEach((meta) => {
-			this.addFlagColorSetting(section, meta);
-		});
+		// Process comment and missing with extra controls
+		const specialFlags = FLAG_METADATA.filter((meta) => meta.type === 'MISSING');
+		specialFlags.forEach((meta) => this.addFlagColorSetting(section, meta));
+
+		const commentContainer = section.createDiv({ cls: 'long-view-comment-settings' });
+		const commentSetting = this.addFlagColorSetting(commentContainer, FLAG_METADATA.find((meta) => meta.type === 'COMMENT')!);
+		this.addCommentToggle(commentContainer);
 
 		new Setting(section)
 			.setName('Reset colors')
@@ -57,7 +60,7 @@ export class LongViewSettingTab extends PluginSettingTab {
 			});
 	}
 
-	private addFlagColorSetting(parent: HTMLElement, meta: FlagMetadata): void {
+	private addFlagColorSetting(parent: HTMLElement, meta: FlagMetadata): { setting: Setting } {
 		const typeKey = meta.type;
 		const setting = new Setting(parent)
 			.setName(meta.label)
@@ -80,6 +83,23 @@ export class LongViewSettingTab extends PluginSettingTab {
 				this.plugin.applyFlagStyles();
 				await this.plugin.refreshOpenViews();
 			});
+		});
+
+		return { setting };
+	}
+
+	private addCommentToggle(container: HTMLElement): void {
+		const setting = new Setting(container)
+			.setName('Include comments in minimap')
+			.setDesc('Toggle to show or hide %% inline comments %% inside the minimap overview.');
+
+		setting.addToggle((toggle) => {
+			toggle.setValue(this.plugin.settings.includeCommentsInMinimap)
+				.onChange(async (value) => {
+					this.plugin.settings.includeCommentsInMinimap = value;
+					await this.plugin.saveSettings();
+					await this.plugin.refreshOpenViews();
+				});
 		});
 	}
 

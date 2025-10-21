@@ -35,6 +35,8 @@ Long View recognizes and visualizes task flags and comments:
 
 Flags appear as clickable indicators in both modes, adapting their display to zoom level and view type.
 
+**Tip:** You can provide a short label for minimap previews by inserting a pipe in the flag text. For example, `==TODO: Refactor intro | expand supporting evidence ==` shows **Refactor intro** in the minimap while keeping the full message everywhere else.
+
 ## Section Flag System (Callouts)
 
 Long view can also add flags to whole sections of the document using the markdown heading structure. This tints the background of the section in both views.
