@@ -270,6 +270,7 @@ export class LongView extends ItemView {
 			showParagraphs: this.plugin.settings.showParagraphsInMinimap,
 			numberSections: this.plugin.settings.numberSections,
 			minimapFonts: this.plugin.settings.minimapFontSizes,
+			minimapLineGap: this.plugin.settings.minimapLineGap,
 		});
 
 		await this.minimapRenderer.initialize(this.minimapSections);

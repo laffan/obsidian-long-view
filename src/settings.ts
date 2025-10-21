@@ -17,6 +17,7 @@ export interface LongViewSettings {
 	numberSections: boolean;
 	flagColors: FlagColorMap;
 	minimapFontSizes: MinimapFontSettings;
+	minimapLineGap: number;
 }
 
 export const DEFAULT_FLAG_COLORS: FlagColorMap = {
@@ -41,4 +42,5 @@ export const DEFAULT_SETTINGS: LongViewSettings = {
 		heading: 12,
 		flag: 12,
 	},
+	minimapLineGap: 2,
 };

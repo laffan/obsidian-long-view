@@ -93,6 +93,7 @@ export class LongViewSettingTab extends PluginSettingTab {
 		this.addMinimapInput(section, 'Paragraph text size', 'body', 1, 8, 0.5, 'px');
 		this.addMinimapInput(section, 'Heading text size', 'heading', 8, 20, 1, 'px');
 		this.addMinimapInput(section, 'Flag label size', 'flag', 8, 18, 1, 'px');
+		this.addLineGapInput(section);
 	}
 
 	private addMinimapInput(
@@ -120,6 +121,27 @@ export class LongViewSettingTab extends PluginSettingTab {
 				}
 				text.inputEl.classList.remove('long-view-input-invalid');
 				this.plugin.settings.minimapFontSizes[key] = numericValue;
+				await this.plugin.saveSettings();
+				await this.plugin.refreshOpenViews();
+			});
+		});
+	}
+
+	private addLineGapInput(parent: HTMLElement): void {
+		const setting = new Setting(parent).setName('Minimap line height').setDesc('Distance between rows in the minimap (px).');
+		setting.addText((text) => {
+			text.inputEl.type = 'number';
+			text.inputEl.min = '0';
+			text.inputEl.step = '0.5';
+			text.setValue(this.plugin.settings.minimapLineGap.toString());
+			text.onChange(async (value) => {
+				const numericValue = parseFloat(value);
+				if (Number.isNaN(numericValue) || numericValue < 0) {
+					text.inputEl.classList.add('long-view-input-invalid');
+					return;
+				}
+				text.inputEl.classList.remove('long-view-input-invalid');
+				this.plugin.settings.minimapLineGap = numericValue;
 				await this.plugin.saveSettings();
 				await this.plugin.refreshOpenViews();
 			});

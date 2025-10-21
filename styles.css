@@ -191,7 +191,7 @@
 .long-view-minimap-section-body {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--long-view-minimap-gap, 2px);
 	pointer-events: none;
 	align-items: flex-start;
 }

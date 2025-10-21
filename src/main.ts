@@ -83,6 +83,7 @@ export default class LongViewPlugin extends Plugin {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, persisted);
 		this.settings.flagColors = Object.assign({}, DEFAULT_FLAG_COLORS, persisted?.flagColors ?? {});
 		this.settings.minimapFontSizes = Object.assign({}, DEFAULT_SETTINGS.minimapFontSizes, persisted?.minimapFontSizes ?? {});
+		this.settings.minimapLineGap = typeof persisted?.minimapLineGap === 'number' ? persisted.minimapLineGap : DEFAULT_SETTINGS.minimapLineGap;
 	}
 
 	async saveSettings() {

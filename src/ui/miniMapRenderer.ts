@@ -11,6 +11,7 @@ export interface MiniMapOptions {
 	showParagraphs?: boolean;
 	numberSections?: boolean;
 	minimapFonts: MinimapFontSettings;
+	minimapLineGap: number;
 }
 
 interface RenderedSection {
@@ -37,12 +38,14 @@ export class MiniMapRenderer extends Component {
 	private currentCalloutStack: Array<{ color: string }> = [];
 	// Map from heading offset to its callout stack
 	private headingCalloutStacks: Map<number, Array<{ color: string }>> = new Map();
-  private minimapFonts: MinimapFontSettings;
+	private minimapFonts: MinimapFontSettings;
+	private minimapLineGap: number;
 
 	constructor(options: MiniMapOptions) {
 		super();
 		this.options = options;
-    this.minimapFonts = options.minimapFonts;
+		this.minimapFonts = options.minimapFonts;
+		this.minimapLineGap = options.minimapLineGap;
 	}
 
 	async initialize(pages: DocumentPage[]): Promise<void> {
@@ -243,9 +246,11 @@ export class MiniMapRenderer extends Component {
 							.replace(/==$/, '')
 							.trim();
 						const withoutTitle = cleanedLine?.replace(/^MISSING:\s*/i, '').trim() ?? '';
-						messageText = withoutTitle.length > 0 ? withoutTitle : flagInfo.message;
+						const truncated = withoutTitle.split('|')[0]?.trim() ?? '';
+						messageText = truncated.length > 0 ? truncated : flagInfo.message.split('|')[0]?.trim() ?? flagInfo.message;
 					} else {
-						messageText = getFirstWords(flagInfo.message, 10);
+						const truncated = flagInfo.message.split('|')[0]?.trim() ?? flagInfo.message;
+						messageText = getFirstWords(truncated, 10);
 					}
 					flagEl.createSpan({ cls: 'long-view-minimap-flag-message', text: messageText });
 
@@ -539,6 +544,7 @@ export class MiniMapRenderer extends Component {
 		this.contentWrapperEl.style.setProperty('--long-view-minimap-line-height', lineHeight.toFixed(2));
 		this.contentWrapperEl.style.setProperty('--long-view-minimap-heading-font-base', `${headingBase}px`);
 		this.contentWrapperEl.style.setProperty('--long-view-minimap-flag-font-size', `${flagFont}px`);
+		this.contentWrapperEl.style.setProperty('--long-view-minimap-gap', `${this.minimapLineGap}px`);
 	}
 
 	cleanup(): void {
