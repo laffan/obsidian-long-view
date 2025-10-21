@@ -191,7 +191,7 @@
 .long-view-minimap-section-body {
 	display: flex;
 	flex-direction: column;
-	gap: var(--long-view-minimap-gap, 2px);
+	gap: calc(var(--long-view-minimap-gap, 2px));
 	pointer-events: none;
 	align-items: flex-start;
 }
@@ -212,6 +212,8 @@
 	word-break: break-word;
 	max-width: 100px;
 	margin: 0;
+	padding-top: calc(var(--long-view-minimap-gap, 2px) / 2);
+	padding-bottom: calc(var(--long-view-minimap-gap, 2px) / 2);
 }
 
 img.long-view-minimap-image {
@@ -243,6 +245,8 @@ img.long-view-minimap-image {
 	word-break: break-word;
 	overflow: visible;
 	width: 100%;
+	padding-top: calc(var(--long-view-minimap-gap, 2px) / 2);
+	padding-bottom: calc(var(--long-view-minimap-gap, 2px) / 2);
 }
 
 .long-view-minimap-heading:hover {
