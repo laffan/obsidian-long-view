@@ -121,6 +121,23 @@ export default class LongViewPlugin extends Plugin {
       this.settings.includeCommentsInMinimap =
         DEFAULT_SETTINGS.includeCommentsInMinimap;
     }
+    if (typeof persisted?.includeImagesInMinimap !== "boolean") {
+      this.settings.includeImagesInMinimap =
+        DEFAULT_SETTINGS.includeImagesInMinimap;
+    }
+    if (!Array.isArray(persisted?.minimapHiddenFlags)) {
+      this.settings.minimapHiddenFlags = [
+        ...DEFAULT_SETTINGS.minimapHiddenFlags,
+      ];
+    } else {
+      // Normalize to uppercase and unique
+      const set = new Set<string>(
+        (persisted!.minimapHiddenFlags as string[]).map((s) =>
+          String(s || "").toUpperCase(),
+        ),
+      );
+      this.settings.minimapHiddenFlags = Array.from(set);
+    }
   }
 
   async saveSettings() {

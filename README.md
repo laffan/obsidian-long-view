@@ -12,6 +12,7 @@ A continuous, scrollable overview of your entire document with:
 - **Flag indicators** – Color-coded badges for TODO, NOW, and comment flags
 - **Live sync** – Active heading highlights automatically as you scroll the editor
 - **Click to jump** – Headings, images, and flags are clickable for instant navigation
+- **Filters menu** – Compact dropdown to toggle visibility of Text, Numbers, Images, Comments, and individual flag types found in the current document (flag entries show a colored dot)
 
 ### Paged Mode
 A zoomable grid of letter-size pages (450 words each) with:
@@ -48,8 +49,9 @@ To add a section flag, the line immediately following the heading in question mu
 1. Open any markdown file in Obsidian.
 2. Activate Long View via ribbon icon or command palette (`Long View: Open Long View`).
 3. **Choose your mode**: Click "Minimap" for continuous overview, or "Paged" for print-style pages.
-4. **Navigate**: Click headings, images, or flags to jump the editor to that location.
-5. **Refresh**: Click the ♻️ button to update the view with your latest edits.
+4. **Use Filters**: In Minimap, click "Filters" to expand a right-aligned toggle list for Text, Numbers, Images, Comments, and any flag types used in the current file. Flag entries include a colored dot for clarity.
+5. **Navigate**: Click headings, images, or flags to jump the editor to that location.
+6. **Refresh**: Click the ♻️ button to update the view with your latest edits.
 
 **Note**: Long View does not auto-refresh on every keystroke for performance. Switch files, change modes, or click refresh to update.
 

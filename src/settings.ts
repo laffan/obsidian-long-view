@@ -17,6 +17,8 @@ export interface LongViewSettings {
   showParagraphsInMinimap: boolean;
   numberSections: boolean;
   includeCommentsInMinimap: boolean;
+  includeImagesInMinimap: boolean;
+  minimapHiddenFlags: string[]; // uppercased flag types to hide in minimap
   flagColors: FlagColorMap;
   customFlags: CustomFlag[];
   minimapFontSizes: MinimapFontSettings;
@@ -38,6 +40,8 @@ export const DEFAULT_SETTINGS: LongViewSettings = {
   showParagraphsInMinimap: true,
   numberSections: true,
   includeCommentsInMinimap: true,
+  includeImagesInMinimap: true,
+  minimapHiddenFlags: [],
   flagColors: { ...DEFAULT_FLAG_COLORS },
   customFlags: [
     { name: "REWRITE", color: DEFAULT_FLAG_COLORS.REWRITE },
