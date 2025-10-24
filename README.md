@@ -12,7 +12,7 @@ A continuous, scrollable overview of your entire document with:
 - **Flag indicators** – Color-coded badges for TODO, NOW, and comment flags
 - **Live sync** – Active heading highlights automatically as you scroll the editor
 - **Click to jump** – Headings, images, and flags are clickable for instant navigation
-- **Filters menu** – Compact dropdown to toggle visibility of Text, Numbers, Images, Comments, and individual flag types found in the current document (flag entries show a colored dot)
+- **Filters menu** – Compact dropdown to toggle Text, Numbers, Images, Comments, flip all line or section flags on/off at once, and fine-tune individual flag types (each entry shows a colored dot)
 
 ### Paged Mode
 A zoomable grid of letter-size pages (450 words each) with:
@@ -42,14 +42,20 @@ Flags appear as clickable indicators in both modes, adapting their display to zo
 
 Long view can also add flags to whole sections of the document using the markdown heading structure. This tints the background of the section in both views.
 
-To add a section flag, the line immediately following the heading in question must be an Obsidian callout. Coloring follows obsidian's existing scheme, as described here : https://help.obsidian.md/callouts .  In minimap mode, the callout title (but not content block) shows up as .5 opacity text immediately below the heading.
+Section flags now ship with the same flexibility as line flags:
+
+- **SUMMARY** is a permanent section flag. It renders with a subtle gray background in the editor, shows in the filters list, and remains untinted inside the minimap.
+- Add new callout types from the plugin settings and assign their colors; built-in callouts keep their Obsidian defaults.
+- Minimap filters include master toggles for line vs. section flags plus per-type controls, so you can quickly hide or show entire categories.
+
+To add a section flag, the line immediately following the heading in question must be an Obsidian callout. Coloring follows Obsidian's existing scheme, as described here: https://help.obsidian.md/callouts. In minimap mode, the callout title (but not the content block) appears at 0.5 opacity immediately below the heading.
 
 ## Using Long View
 
 1. Open any markdown file in Obsidian.
 2. Activate Long View via ribbon icon or command palette (`Long View: Open Long View`).
 3. **Choose your mode**: Click "Minimap" for continuous overview, or "Paged" for print-style pages.
-4. **Use Filters**: In Minimap, click "Filters" to expand a right-aligned toggle list for Text, Numbers, Images, Comments, and any flag types used in the current file. Flag entries include a colored dot for clarity.
+4. **Use Filters**: In Minimap, click "Filters" to expand a right-aligned toggle list for Text, Numbers, Images, Comments, all line flags, all section flags, and each detected flag type (entries include a colored dot).
 5. **Navigate**: Click headings, images, or flags to jump the editor to that location.
 6. **Refresh**: Click the ♻️ button to update the view with your latest edits.
 

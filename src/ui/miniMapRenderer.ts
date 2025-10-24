@@ -21,6 +21,7 @@ export interface MiniMapOptions {
   includeComments: boolean;
   includeImages?: boolean;
   hiddenFlags?: Set<string>; // lowercased flag types to hide
+  hiddenSectionFlags?: Set<string>; // lowercased section flag types to hide
 }
 
 interface RenderedSection {
@@ -44,15 +45,18 @@ export class MiniMapRenderer extends Component {
   private headingEntries: Array<{ offset: number; element: HTMLElement }> = [];
   private activeHeadingEl: HTMLElement | null = null;
   private currentHeadingLevel: number = 0;
-  private currentCalloutStack: Array<{ color: string }> = [];
+  private currentCalloutStack: Array<{ type: string; color: string }> = [];
   // Map from heading offset to its callout stack
-  private headingCalloutStacks: Map<number, Array<{ color: string }>> =
-    new Map();
+  private headingCalloutStacks: Map<
+    number,
+    Array<{ type: string; color: string }>
+  > = new Map();
   private minimapFonts: MinimapFontSettings;
   private minimapLineGap: number;
   private includeComments: boolean;
   private includeImages: boolean;
   private hiddenFlags: Set<string>;
+  private hiddenSectionFlags: Set<string>;
 
   constructor(options: MiniMapOptions) {
     super();
@@ -61,7 +65,16 @@ export class MiniMapRenderer extends Component {
     this.minimapLineGap = options.minimapLineGap;
     this.includeComments = options.includeComments;
     this.includeImages = options.includeImages !== false;
-    this.hiddenFlags = options.hiddenFlags ?? new Set();
+    this.hiddenFlags = new Set(
+      Array.from(options.hiddenFlags ?? new Set<string>()).map((s) =>
+        String(s || "").toLowerCase(),
+      ),
+    );
+    this.hiddenSectionFlags = new Set(
+      Array.from(options.hiddenSectionFlags ?? new Set<string>()).map((s) =>
+        String(s || "").toLowerCase(),
+      ),
+    );
   }
 
   async initialize(pages: DocumentPage[]): Promise<void> {
@@ -119,7 +132,7 @@ export class MiniMapRenderer extends Component {
 
     // Track current state for rendering
     let currentCalloutStack = this.currentCalloutStack.slice();
-    let activeCalloutStack: Array<{ color: string }> = [];
+    let activeCalloutStack: Array<{ type: string; color: string }> = [];
     let currentLevel = this.currentHeadingLevel;
     let flowEl: HTMLElement | null = null;
 
@@ -128,15 +141,21 @@ export class MiniMapRenderer extends Component {
 
     // Helper to update callout wrappers based on new stack
     const updateCalloutWrappers = (
-      newStack: Array<{ color: string }>,
+      newStack: Array<{ type: string; color: string }>,
     ): HTMLElement => {
+      const filteredStack = newStack.filter((callout) =>
+        this.shouldRenderCalloutBackground(callout.type),
+      );
+
       // Find common prefix length
       let commonPrefixLen = 0;
       while (
         commonPrefixLen <
-          Math.min(activeCalloutStack.length, newStack.length) &&
+          Math.min(activeCalloutStack.length, filteredStack.length) &&
+        activeCalloutStack[commonPrefixLen].type ===
+          filteredStack[commonPrefixLen].type &&
         activeCalloutStack[commonPrefixLen].color ===
-          newStack[commonPrefixLen].color
+          filteredStack[commonPrefixLen].color
       ) {
         commonPrefixLen++;
       }
@@ -151,27 +170,27 @@ export class MiniMapRenderer extends Component {
           : contentEl;
 
       // Add new wrappers for the rest of the stack
-      for (let i = commonPrefixLen; i < newStack.length; i++) {
-        const callout = newStack[i];
+      for (let i = commonPrefixLen; i < filteredStack.length; i++) {
+        const callout = filteredStack[i];
         const calloutWrapper = container.createDiv({
           cls: "long-view-minimap-callout-bg",
         });
-        const rgbMatch = callout.color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-        if (rgbMatch) {
-          const [, r, g, b] = rgbMatch;
-          calloutWrapper.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.15)`;
-        } else {
-          calloutWrapper.style.backgroundColor = callout.color;
-          calloutWrapper.style.opacity = "0.15";
-        }
+        this.applyCalloutBackgroundTint(
+          calloutWrapper,
+          callout.color,
+          callout.type,
+        );
         openCalloutWrappers.push(calloutWrapper);
         container = calloutWrapper;
       }
 
       // Update active callout stack to reflect wrappers we just built
-      activeCalloutStack = newStack.map((callout) => ({
+      activeCalloutStack = filteredStack.map((callout) => ({
+        type: callout.type,
         color: callout.color,
       }));
+
+      currentCalloutStack = filteredStack.slice();
 
       return container;
     };
@@ -202,7 +221,6 @@ export class MiniMapRenderer extends Component {
           const headingStack =
             this.headingCalloutStacks.get(headingInfo.startOffset) || [];
           const calloutContainer = updateCalloutWrappers(headingStack);
-          currentCalloutStack = headingStack.slice();
 
           // Always create a fresh section structure for each heading so sibling
           // sections don't re-use the prior flow container.
@@ -241,7 +259,10 @@ export class MiniMapRenderer extends Component {
           });
 
           // If this heading has a callout, display the callout title below it at 0.5 opacity
-          if (headingInfo.callout) {
+          if (
+            headingInfo.callout &&
+            !this.isSectionFlagHidden(headingInfo.callout.type)
+          ) {
             const calloutTitleEl = flowEl.createDiv({
               cls: "long-view-minimap-callout-title",
             });
@@ -675,6 +696,68 @@ export class MiniMapRenderer extends Component {
       "--long-view-minimap-gap",
       `${this.minimapLineGap}px`,
     );
+  }
+
+  private isSectionFlagHidden(type?: string): boolean {
+    if (!type) return false;
+    return this.hiddenSectionFlags.has(type.toLowerCase());
+  }
+
+  private shouldRenderCalloutBackground(type: string): boolean {
+    if (!type) return false;
+    const lower = type.toLowerCase();
+    if (lower === "summary") {
+      return false;
+    }
+    return !this.hiddenSectionFlags.has(lower);
+  }
+
+  private applyCalloutBackgroundTint(
+    element: HTMLElement,
+    color: string,
+    type: string,
+  ): void {
+    const tintAlpha = type.toLowerCase() === "summary" ? 0.08 : 0.15;
+    const rgb = this.parseColorToRgb(color);
+    if (rgb) {
+      const { r, g, b } = rgb;
+      element.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${tintAlpha})`;
+      return;
+    }
+    element.style.backgroundColor = color;
+    element.style.opacity = tintAlpha.toString();
+  }
+
+  private parseColorToRgb(
+    color: string,
+  ): { r: number; g: number; b: number } | null {
+    if (!color) return null;
+    const trimmed = color.trim();
+    const rgbMatch = trimmed.match(
+      /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i,
+    );
+    if (rgbMatch) {
+      return {
+        r: Number(rgbMatch[1]),
+        g: Number(rgbMatch[2]),
+        b: Number(rgbMatch[3]),
+      };
+    }
+    const hexMatch = trimmed.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (!hexMatch) return null;
+    let hex = hexMatch[1];
+    if (hex.length === 3) {
+      hex = hex
+        .split("")
+        .map((ch) => ch + ch)
+        .join("");
+    }
+    const intVal = parseInt(hex, 16);
+    return {
+      r: (intVal >> 16) & 0xff,
+      g: (intVal >> 8) & 0xff,
+      b: intVal & 0xff,
+    };
   }
 
   cleanup(): void {

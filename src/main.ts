@@ -5,12 +5,14 @@ import {
   LongViewSettings,
   DEFAULT_SETTINGS,
   DEFAULT_FLAG_COLORS,
+  DEFAULT_SECTION_FLAG_COLORS,
 } from "./settings";
 import {
   createFlagHighlightExtension,
   processRenderedFlags,
 } from "./flags/flagStyling";
 import { setFlagColorMap } from "./flags/flagColors";
+import { setSectionFlagColorMap } from "./flags/sectionFlagColors";
 import { LongViewSettingTab } from "./settingsTab";
 
 export default class LongViewPlugin extends Plugin {
@@ -20,6 +22,7 @@ export default class LongViewPlugin extends Plugin {
   async onload() {
     await this.loadSettings();
     setFlagColorMap(this.settings.flagColors);
+    setSectionFlagColorMap(this.settings.sectionFlagColors);
     this.applyFlagStyles();
 
     // Style inline flags inside the main editor and reading view
@@ -91,6 +94,11 @@ export default class LongViewPlugin extends Plugin {
       DEFAULT_FLAG_COLORS,
       persisted?.flagColors ?? {},
     );
+    this.settings.sectionFlagColors = Object.assign(
+      {},
+      DEFAULT_SECTION_FLAG_COLORS,
+      persisted?.sectionFlagColors ?? {},
+    );
     // Ensure custom flags list exists and synchronize colors
     const persistedCustom = Array.isArray(persisted?.customFlags)
       ? persisted.customFlags
@@ -106,6 +114,30 @@ export default class LongViewPlugin extends Plugin {
     // Ensure mapping contains custom flags
     for (const cf of this.settings.customFlags) {
       this.settings.flagColors[cf.name.toUpperCase()] = cf.color;
+    }
+    const persistedSectionCustom = Array.isArray(persisted?.customSectionFlags)
+      ? persisted.customSectionFlags
+      : DEFAULT_SETTINGS.customSectionFlags;
+    const normalizedSectionCustom = persistedSectionCustom
+      .map((cf: any) => ({
+        name: String(cf?.name || "").toUpperCase(),
+        color: String(
+          cf?.color ||
+            this.settings.sectionFlagColors[
+              String(cf?.name || "").toUpperCase()
+            ] ||
+            "#086ddd",
+        ),
+      }))
+      .filter((cf: { name: string; color: string }) => {
+        const upper = cf.name.toUpperCase();
+        if (!upper) return false;
+        if (upper === "SUMMARY") return false;
+        return !(upper in DEFAULT_SECTION_FLAG_COLORS);
+      });
+    this.settings.customSectionFlags = normalizedSectionCustom;
+    for (const cf of normalizedSectionCustom) {
+      this.settings.sectionFlagColors[cf.name.toUpperCase()] = cf.color;
     }
     // Other settings
     this.settings.minimapFontSizes = Object.assign(
@@ -137,6 +169,18 @@ export default class LongViewPlugin extends Plugin {
         ),
       );
       this.settings.minimapHiddenFlags = Array.from(set);
+    }
+    if (!Array.isArray(persisted?.minimapHiddenSectionFlags)) {
+      this.settings.minimapHiddenSectionFlags = [
+        ...DEFAULT_SETTINGS.minimapHiddenSectionFlags,
+      ];
+    } else {
+      const sectionSet = new Set<string>(
+        (persisted!.minimapHiddenSectionFlags as string[]).map((s) =>
+          String(s || "").toUpperCase(),
+        ),
+      );
+      this.settings.minimapHiddenSectionFlags = Array.from(sectionSet);
     }
   }
 
@@ -202,6 +246,68 @@ export default class LongViewPlugin extends Plugin {
 	.cm-content .long-view-inline-flag.long-view-inline-flag-${typeLower} { background-color: ${inlineBg} !important; color: ${textColor} !important; }
 	`;
     }
+    css += this.generateSectionCalloutStyles();
+    return css;
+  }
+
+  private generateSectionCalloutStyles(): string {
+    const sectionColorMap = this.settings.sectionFlagColors || {};
+    const customSectionTypes = new Set(
+      (this.settings.customSectionFlags || []).map((cf) =>
+        String(cf?.name || "").toUpperCase(),
+      ),
+    );
+
+    let css = "";
+
+    const summaryColor = sectionColorMap.SUMMARY || "#b8b8b8";
+    css += this.buildCalloutStyle("SUMMARY", summaryColor, true);
+
+    for (const type of customSectionTypes) {
+      if (!type || type === "SUMMARY") continue;
+      const color = sectionColorMap[type] || "#086ddd";
+      css += this.buildCalloutStyle(type, color, false);
+    }
+
+    return css;
+  }
+
+  private buildCalloutStyle(
+    type: string,
+    color: string,
+    isSummary: boolean,
+  ): string {
+    const typeLower = type.toLowerCase();
+    const accent = color || "#086ddd";
+    const bgAlpha = isSummary ? 0.08 : 0.08;
+    const borderAlpha = isSummary ? 0.18 : 0.22;
+    const titleBgAlpha = isSummary ? bgAlpha : 0.12;
+    const background = toRgba(accent, bgAlpha);
+    const border = toRgba(accent, borderAlpha);
+    const titleBg = isSummary ? background : toRgba(accent, titleBgAlpha);
+    const titleColor = accent;
+
+    let css = `
+.callout[data-callout="${typeLower}"],
+.markdown-source-view.mod-cm6 .cm-callout[data-callout="${typeLower}"] {
+  --callout-color: ${accent};
+  --callout-border-color: ${border};
+  --callout-bg: ${background};
+  --callout-title-bg: transparent;
+  --callout-title-color: ${titleColor};
+  background-color: ${background};
+  border-color: ${border};
+}
+`;
+
+    css += `
+.callout[data-callout="${typeLower}"] > .callout-title,
+.markdown-source-view.mod-cm6 .cm-callout[data-callout="${typeLower}"] > .callout-title {
+  background-color: transparent;
+  color: ${titleColor};
+}
+`;
+
     return css;
   }
 }

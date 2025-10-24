@@ -1,4 +1,5 @@
 import { getFlagColor } from "../flags/flagColors";
+import { getSectionFlagColor } from "../flags/sectionFlagColors";
 
 export interface DocumentCallout {
   type: string;
@@ -210,36 +211,7 @@ export function getFirstWords(message: string, wordCount: number): string {
  * Based on Obsidian's default callout color scheme
  */
 export function getCalloutColor(type: string): string {
-  const typeLower = type.toLowerCase();
-  const colorMap: Record<string, string> = {
-    bug: "rgb(233, 49, 71)",
-    default: "rgb(8, 109, 221)",
-    error: "rgb(233, 49, 71)",
-    fail: "rgb(233, 49, 71)",
-    example: "rgb(120, 82, 238)",
-    important: "rgb(0, 191, 188)",
-    info: "rgb(8, 109, 221)",
-    question: "rgb(236, 117, 0)",
-    help: "rgb(236, 117, 0)",
-    faq: "rgb(236, 117, 0)",
-    success: "rgb(8, 185, 78)",
-    check: "rgb(8, 185, 78)",
-    done: "rgb(8, 185, 78)",
-    summary: "rgb(0, 191, 188)",
-    abstract: "rgb(0, 191, 188)",
-    tldr: "rgb(0, 191, 188)",
-    tip: "rgb(0, 191, 188)",
-    hint: "rgb(0, 191, 188)",
-    todo: "rgb(8, 109, 221)",
-    warning: "rgb(236, 117, 0)",
-    caution: "rgb(236, 117, 0)",
-    attention: "rgb(236, 117, 0)",
-    danger: "rgb(233, 49, 71)",
-    note: "rgb(8, 109, 221)",
-    quote: "rgb(120, 82, 238)",
-    cite: "rgb(120, 82, 238)",
-  };
-  return colorMap[typeLower] || "rgb(8, 109, 221)"; // Default to blue
+  return getSectionFlagColor(type);
 }
 
 /**
@@ -260,12 +232,14 @@ export function parseCallout(
     return null;
   }
 
-  const type = match[1].trim();
-  const title = match[3].trim() || type.charAt(0).toUpperCase() + type.slice(1); // Default title is capitalized type
-  const color = getCalloutColor(type);
+  const typeRaw = match[1].trim();
+  const typeUpper = typeRaw.toUpperCase();
+  const title =
+    match[3].trim() || typeUpper.charAt(0) + typeUpper.slice(1).toLowerCase(); // Default title is capitalized type
+  const color = getCalloutColor(typeUpper);
 
   return {
-    type,
+    type: typeUpper,
     title,
     color,
     startOffset,
@@ -278,9 +252,10 @@ export function parseCallout(
  */
 export function computeHeadingCalloutStacks(
   pages: DocumentPage[],
-): Map<number, Array<{ color: string }>> {
-  const stackMap = new Map<number, Array<{ color: string }>>();
-  const calloutStack: Array<{ level: number; color: string }> = [];
+): Map<number, Array<{ type: string; color: string }>> {
+  const stackMap = new Map<number, Array<{ type: string; color: string }>>();
+  const calloutStack: Array<{ level: number; type: string; color: string }> =
+    [];
 
   // Process all headings in document order
   for (const page of pages) {
@@ -296,6 +271,7 @@ export function computeHeadingCalloutStacks(
       if (heading.callout) {
         calloutStack.push({
           level: heading.level,
+          type: heading.callout.type.toUpperCase(),
           color: heading.callout.color,
         });
       }
@@ -303,7 +279,7 @@ export function computeHeadingCalloutStacks(
       // Store the current stack for this heading (copy it)
       stackMap.set(
         heading.startOffset,
-        calloutStack.map((c) => ({ color: c.color })),
+        calloutStack.map((c) => ({ type: c.type, color: c.color })),
       );
     }
   }

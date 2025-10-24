@@ -16,6 +16,7 @@ import { MiniMapRenderer } from "./miniMapRenderer";
 import { renderPageContent } from "./simplePageRenderer";
 import { ViewMode } from "../settings";
 import { getFlagColor } from "../flags/flagColors";
+import { getSectionFlagColor } from "../flags/sectionFlagColors";
 import type LongViewPlugin from "../main";
 
 export const LONG_VIEW_TYPE = "long-view";
@@ -356,45 +357,116 @@ export class LongView extends ItemView {
       },
     });
 
-    // Dynamic flag toggles (show only flags used in the current document)
+    const usedLineFlags = new Set<string>();
+    const usedSectionFlags = new Set<string>();
+
     try {
-      const usedFlags = new Set<string>();
       for (const section of this.minimapSections) {
-        for (const f of section.flags || []) {
-          const t = String(f.type || "").toUpperCase();
-          if (t === "COMMENT") continue; // handled by Comments toggle
-          usedFlags.add(t);
+        for (const heading of section.headings || []) {
+          const type = heading.callout?.type;
+          if (type) {
+            usedSectionFlags.add(String(type || "").toUpperCase());
+          }
+        }
+        for (const flag of section.flags || []) {
+          const flagType = String(flag.type || "").toUpperCase();
+          if (flagType === "COMMENT") continue;
+          usedLineFlags.add(flagType);
         }
       }
-      const sorted = Array.from(usedFlags).sort();
-      if (sorted.length > 0) {
-        // Separator
-        this.filtersPanelEl.createDiv({ cls: "long-view-filter-sep" });
-      }
-      for (const flagType of sorted) {
+    } catch (e) {
+      // ignore
+    }
+
+    const sortedLineFlags = Array.from(usedLineFlags).sort();
+    const sortedSectionFlags = Array.from(usedSectionFlags).sort();
+
+    const getHiddenLineFlags = () =>
+      new Set(
+        (this.plugin.settings.minimapHiddenFlags || []).map((s) =>
+          String(s || "").toUpperCase(),
+        ),
+      );
+    const getHiddenSectionFlags = () =>
+      new Set(
+        (this.plugin.settings.minimapHiddenSectionFlags || []).map((s) =>
+          String(s || "").toUpperCase(),
+        ),
+      );
+
+    const haveAnyFlagGroups =
+      sortedLineFlags.length > 0 || sortedSectionFlags.length > 0;
+
+    if (haveAnyFlagGroups) {
+      this.filtersPanelEl.createDiv({ cls: "long-view-filter-sep" });
+    }
+
+    if (sortedLineFlags.length > 0) {
+      const hiddenLines = getHiddenLineFlags();
+      const anyLineVisible = sortedLineFlags.some(
+        (flag) => !hiddenLines.has(flag),
+      );
+      addToggleRow({
+        key: "line-flags-toggle",
+        label: "All line flags",
+        checked: anyLineVisible,
+        onChange: async (val) => {
+          const updated = getHiddenLineFlags();
+          if (val) {
+            sortedLineFlags.forEach((flag) => updated.delete(flag));
+          } else {
+            sortedLineFlags.forEach((flag) => updated.add(flag));
+          }
+          this.plugin.settings.minimapHiddenFlags = Array.from(updated);
+          await this.plugin.saveSettings();
+          await this.updateView();
+        },
+      });
+    }
+
+    if (sortedSectionFlags.length > 0) {
+      const hiddenSections = getHiddenSectionFlags();
+      const anySectionVisible = sortedSectionFlags.some(
+        (flag) => !hiddenSections.has(flag),
+      );
+      addToggleRow({
+        key: "section-flags-toggle",
+        label: "All section flags",
+        checked: anySectionVisible,
+        onChange: async (val) => {
+          const updated = getHiddenSectionFlags();
+          if (val) {
+            sortedSectionFlags.forEach((flag) => updated.delete(flag));
+          } else {
+            sortedSectionFlags.forEach((flag) => updated.add(flag));
+          }
+          this.plugin.settings.minimapHiddenSectionFlags = Array.from(updated);
+          await this.plugin.saveSettings();
+          await this.updateView();
+        },
+      });
+    }
+
+    if (sortedLineFlags.length > 0) {
+      this.filtersPanelEl.createDiv({ cls: "long-view-filter-sep" });
+      this.filtersPanelEl.createDiv({
+        cls: "long-view-filter-group-title",
+        text: "Line flags",
+      });
+      const hiddenLineFlags = getHiddenLineFlags();
+      for (const flagType of sortedLineFlags) {
         const color = getFlagColor(flagType);
-        const hiddenSet = new Set<string>(
-          (this.plugin.settings.minimapHiddenFlags || []).map((s) =>
-            String(s || "").toUpperCase(),
-          ),
-        );
-        const isVisible = !hiddenSet.has(flagType);
+        const isVisible = !hiddenLineFlags.has(flagType);
         addToggleRow({
           key: `flag-${flagType}`,
           label: flagType,
           checked: isVisible,
           prefixDotColor: color,
           onChange: async (val) => {
-            const updated = new Set<string>(
-              (this.plugin.settings.minimapHiddenFlags || []).map((s) =>
-                String(s || "").toUpperCase(),
-              ),
-            );
+            const updated = getHiddenLineFlags();
             if (val) {
-              // make visible => remove from hidden
               updated.delete(flagType);
             } else {
-              // hide
               updated.add(flagType);
             }
             this.plugin.settings.minimapHiddenFlags = Array.from(updated);
@@ -403,8 +475,40 @@ export class LongView extends ItemView {
           },
         });
       }
-    } catch (e) {
-      // ignore
+    }
+
+    if (sortedLineFlags.length > 0 && sortedSectionFlags.length > 0) {
+      this.filtersPanelEl.createDiv({ cls: "long-view-filter-sep" });
+    }
+
+    if (sortedSectionFlags.length > 0) {
+      this.filtersPanelEl.createDiv({
+        cls: "long-view-filter-group-title",
+        text: "Section flags",
+      });
+      const hiddenSectionFlags = getHiddenSectionFlags();
+      for (const sectionType of sortedSectionFlags) {
+        const color = getSectionFlagColor(sectionType);
+        const isVisible = !hiddenSectionFlags.has(sectionType);
+        addToggleRow({
+          key: `section-${sectionType}`,
+          label: sectionType,
+          checked: isVisible,
+          prefixDotColor: sectionType === "SUMMARY" ? "#b0b0b0" : color,
+          onChange: async (val) => {
+            const updated = getHiddenSectionFlags();
+            if (val) {
+              updated.delete(sectionType);
+            } else {
+              updated.add(sectionType);
+            }
+            this.plugin.settings.minimapHiddenSectionFlags =
+              Array.from(updated);
+            await this.plugin.saveSettings();
+            await this.updateView();
+          },
+        });
+      }
     }
   }
 
@@ -441,6 +545,11 @@ export class LongView extends ItemView {
       includeImages: this.plugin.settings.includeImagesInMinimap,
       hiddenFlags: new Set(
         (this.plugin.settings.minimapHiddenFlags || []).map((s) =>
+          String(s || "").toLowerCase(),
+        ),
+      ),
+      hiddenSectionFlags: new Set(
+        (this.plugin.settings.minimapHiddenSectionFlags || []).map((s) =>
           String(s || "").toLowerCase(),
         ),
       ),
