@@ -297,6 +297,7 @@ export default class LongViewPlugin extends Plugin {
   --callout-title-color: ${titleColor};
   background-color: ${background};
   border-color: ${border};
+  --callout-icon: none;
 }
 `;
 
@@ -305,6 +306,10 @@ export default class LongViewPlugin extends Plugin {
 .markdown-source-view.mod-cm6 .cm-callout[data-callout="${typeLower}"] > .callout-title {
   background-color: transparent;
   color: ${titleColor};
+}
+.callout[data-callout="${typeLower}"] .callout-icon,
+.markdown-source-view.mod-cm6 .cm-callout[data-callout="${typeLower}"] .callout-icon {
+  display: none;
 }
 `;
 
