@@ -331,23 +331,12 @@ export class MiniMapRenderer extends Component {
 
           // Show only the message, not the type name
           let messageText: string;
+          const baseMessage =
+            flagInfo.message.split("|")[0]?.trim() ?? flagInfo.message;
           if (isMissingFlag) {
-            const cleanedLine = flagInfo.lineText
-              ?.trim()
-              .replace(/^==/, "")
-              .replace(/==$/, "")
-              .trim();
-            const withoutTitle =
-              cleanedLine?.replace(/^MISSING:\s*/i, "").trim() ?? "";
-            const truncated = withoutTitle.split("|")[0]?.trim() ?? "";
-            messageText =
-              truncated.length > 0
-                ? truncated
-                : (flagInfo.message.split("|")[0]?.trim() ?? flagInfo.message);
+            messageText = baseMessage.length > 0 ? baseMessage : "Missing";
           } else {
-            const truncated =
-              flagInfo.message.split("|")[0]?.trim() ?? flagInfo.message;
-            messageText = getFirstWords(truncated, 10);
+            messageText = getFirstWords(baseMessage, 10);
           }
           flagEl.createSpan({
             cls: "long-view-minimap-flag-message",
