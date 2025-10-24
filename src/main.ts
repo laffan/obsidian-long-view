@@ -1,4 +1,10 @@
-import { Plugin, WorkspaceLeaf } from "obsidian";
+import {
+  MarkdownRenderer,
+  MarkdownView,
+  Notice,
+  Plugin,
+  WorkspaceLeaf,
+} from "obsidian";
 import chroma from "./utils/chroma";
 import { LongView, LONG_VIEW_TYPE } from "./ui/LongView";
 import {
@@ -14,6 +20,7 @@ import {
 import { setFlagColorMap } from "./flags/flagColors";
 import { setSectionFlagColorMap } from "./flags/sectionFlagColors";
 import { LongViewSettingTab } from "./settingsTab";
+import { stripFlagsAndComments } from "./utils/textExport";
 
 export default class LongViewPlugin extends Plugin {
   settings: LongViewSettings;
@@ -48,6 +55,34 @@ export default class LongViewPlugin extends Plugin {
       callback: () => {
         this.activateView();
       },
+    });
+
+    this.addCommand({
+      id: "long-view-copy-document",
+      name: "Long View: Copy document without flags",
+      callback: () =>
+        this.copyStrippedContent({ scope: "document", format: "text" }),
+    });
+
+    this.addCommand({
+      id: "long-view-copy-selection",
+      name: "Long View: Copy selection without flags",
+      callback: () =>
+        this.copyStrippedContent({ scope: "selection", format: "text" }),
+    });
+
+    this.addCommand({
+      id: "long-view-copy-document-html",
+      name: "Long View: Copy document without flags (HTML)",
+      callback: () =>
+        this.copyStrippedContent({ scope: "document", format: "html" }),
+    });
+
+    this.addCommand({
+      id: "long-view-copy-selection-html",
+      name: "Long View: Copy selection without flags (HTML)",
+      callback: () =>
+        this.copyStrippedContent({ scope: "selection", format: "html" }),
     });
   }
 
@@ -209,6 +244,114 @@ export default class LongViewPlugin extends Plugin {
         }
       }),
     );
+  }
+
+  private async copyStrippedContent(options: {
+    scope: "document" | "selection";
+    format: "text" | "html";
+  }): Promise<void> {
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!view) {
+      new Notice("No active markdown file");
+      return;
+    }
+
+    const editor = view.editor;
+    if (!editor) {
+      new Notice("No active editor");
+      return;
+    }
+
+    const rawText =
+      options.scope === "selection" ? editor.getSelection() : editor.getValue();
+
+    if (options.scope === "selection" && (!rawText || rawText.length === 0)) {
+      new Notice("Nothing selected");
+      return;
+    }
+
+    const cleaned = stripFlagsAndComments(rawText);
+    if (!cleaned) {
+      new Notice("Nothing to copy after removing flags");
+      return;
+    }
+
+    try {
+      if (options.format === "html") {
+        const html = await this.renderMarkdownToHtml(
+          cleaned,
+          view.file?.path ?? "",
+        );
+        await this.writeClipboard(cleaned, html);
+      } else {
+        await this.writeClipboard(cleaned);
+      }
+      new Notice("Copied to clipboard");
+    } catch (error) {
+      console.error("Long View: Failed to copy", error);
+      new Notice("Failed to copy to clipboard");
+    }
+  }
+
+  private async renderMarkdownToHtml(
+    markdown: string,
+    sourcePath: string,
+  ): Promise<string> {
+    const container = document.createElement("div");
+    container.style.position = "fixed";
+    container.style.left = "-9999px";
+    container.style.top = "-9999px";
+    container.style.pointerEvents = "none";
+    document.body.appendChild(container);
+
+    await MarkdownRenderer.renderMarkdown(
+      markdown,
+      container,
+      sourcePath,
+      this,
+    );
+    const html = container.innerHTML;
+    container.remove();
+    return html;
+  }
+
+  private async writeClipboard(text: string, html?: string): Promise<void> {
+    const navClipboard = navigator?.clipboard as Clipboard | undefined;
+    const clipboardItemCtor = (window as any).ClipboardItem as
+      | (new (items: Record<string, Blob>) => any)
+      | undefined;
+
+    if (html && navClipboard && clipboardItemCtor && navClipboard.write) {
+      const item = new clipboardItemCtor({
+        "text/plain": new Blob([text], { type: "text/plain" }),
+        "text/html": new Blob([html], { type: "text/html" }),
+      });
+      await navClipboard.write([item]);
+      return;
+    }
+
+    if (!html && navClipboard?.writeText) {
+      await navClipboard.writeText(text);
+      return;
+    }
+
+    const electron = (window as any).require?.("electron");
+    const electronClipboard = electron?.clipboard;
+    if (electronClipboard) {
+      if (html) {
+        electronClipboard.write({ text, html });
+      } else {
+        electronClipboard.writeText(text);
+      }
+      return;
+    }
+
+    if (navClipboard?.writeText) {
+      await navClipboard.writeText(text);
+      return;
+    }
+
+    throw new Error("Clipboard API unavailable");
   }
 
   private generateFlagStyles(): string {
