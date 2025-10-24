@@ -59,6 +59,17 @@ To add a section flag, the line immediately following the heading in question mu
 5. **Navigate**: Click headings, images, or flags to jump the editor to that location.
 6. **Refresh**: Click the ♻️ button to update the view with your latest edits.
 
+## Command Palette Utilities
+
+Long View adds clipboard helpers that strip line flags, callout section flags, and Obsidian comments before copying:
+
+- `Long View: Copy document without flags` – Copies the entire note as plain text.
+- `Long View: Copy selection without flags` – Copies only the current selection as plain text.
+- `Long View: Copy document without flags (HTML)` – Copies the whole note as HTML, suitable for rich-text pasting.
+- `Long View: Copy selection without flags (HTML)` – Copies the current selection as HTML.
+
+If the selected range collapses to nothing (or a note only contains flags/comments), the commands show a quick notice instead of copying empty text.
+
 **Note**: Long View does not auto-refresh on every keystroke for performance. Switch files, change modes, or click refresh to update.
 
 ## Implementation
