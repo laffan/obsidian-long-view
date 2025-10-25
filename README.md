@@ -10,9 +10,10 @@ A continuous, scrollable overview of your entire document with:
 - **Readable headings** – Auto-numbered (1, 1.1, 1.1.1...) at 12px, H1s underlined
 - **Image thumbnails** – Embedded images appear as 100px thumbnails
 - **Flag indicators** – Color-coded badges for TODO, NOW, and comment flags
+- **Optional type labels** – Toggle to show flag types (e.g., TODO, MISSING) alongside messages; excludes Comments and SUMMARY callouts
 - **Live sync** – Active heading highlights automatically as you scroll the editor
 - **Click to jump** – Headings, images, and flags are clickable for instant navigation
-- **Filters menu** – Compact dropdown to toggle Text, Numbers, Images, Comments, flip all line or section flags on/off at once, and fine-tune individual flag types (each entry shows a colored dot)
+- **Filters menu** – Compact dropdown to toggle Text, Numbers, Images, Comments, Types, flip all line or section flags on/off at once, and fine-tune individual flag types (each entry shows a colored dot)
 
 ### Paged Mode
 A zoomable grid of letter-size pages (450 words each) with:
@@ -47,6 +48,8 @@ Section flags now ship with the same flexibility as line flags:
 - **SUMMARY** is a permanent section flag. It renders with a subtle gray background in the editor, shows in the filters list, and remains untinted inside the minimap.
 - Add new callout types from the plugin settings and assign their colors; built-in callouts keep their Obsidian defaults.
 - Minimap filters include master toggles for line vs. section flags plus per-type controls, so you can quickly hide or show entire categories.
+
+Note: The callout title that appears under headings in the minimap uses the same size as flag labels. Adjust it via Settings → Long View → Minimap Text Size → Flag label size.
 
 To add a section flag, the line immediately following the heading in question must be an Obsidian callout. Coloring follows Obsidian's existing scheme, as described here: https://help.obsidian.md/callouts. In minimap mode, the callout title (but not the content block) appears at 0.5 opacity immediately below the heading.
 
