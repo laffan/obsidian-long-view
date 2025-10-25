@@ -326,7 +326,7 @@ img.long-view-minimap-image {
 /* Minimap callout title */
 .long-view-minimap-callout-title {
     display: block;
-    font-size: 12px;
+    font-size: var(--long-view-minimap-flag-font-size, 12px);
     color: var(--text-muted);
     opacity: 0.5;
     margin: 1px 0 2px 0;
@@ -334,6 +334,14 @@ img.long-view-minimap-image {
     white-space: normal;
     word-break: break-word;
     overflow: visible;
+}
+
+/* Optional flag type label in minimap */
+.long-view-minimap-flag-type {
+    font-size: var(--long-view-minimap-flag-font-size, 12px);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
 /* Minimap flags */

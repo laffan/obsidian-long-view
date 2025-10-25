@@ -19,6 +19,7 @@ export interface LongViewSettings {
   numberSections: boolean;
   includeCommentsInMinimap: boolean;
   includeImagesInMinimap: boolean;
+  showFlagTypesInMinimap: boolean; // show TYPE labels in minimap for flags/callouts (excludes COMMENT and SUMMARY)
   minimapHiddenFlags: string[]; // uppercased flag types to hide in minimap
   flagColors: FlagColorMap;
   customFlags: CustomFlag[];
@@ -75,6 +76,7 @@ export const DEFAULT_SETTINGS: LongViewSettings = {
   numberSections: true,
   includeCommentsInMinimap: true,
   includeImagesInMinimap: true,
+  showFlagTypesInMinimap: false,
   minimapHiddenFlags: [],
   flagColors: { ...DEFAULT_FLAG_COLORS },
   customFlags: [

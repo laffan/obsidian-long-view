@@ -357,6 +357,18 @@ export class LongView extends ItemView {
       },
     });
 
+    // Toggle for showing flag/callout TYPE labels in the minimap (excludes COMMENT and SUMMARY)
+    addToggleRow({
+      key: "types",
+      label: "Types",
+      checked: !!this.plugin.settings.showFlagTypesInMinimap,
+      onChange: async (val) => {
+        this.plugin.settings.showFlagTypesInMinimap = val;
+        await this.plugin.saveSettings();
+        await this.updateView();
+      },
+    });
+
     const usedLineFlags = new Set<string>();
     const usedSectionFlags = new Set<string>();
 
@@ -543,6 +555,7 @@ export class LongView extends ItemView {
       minimapLineGap: this.plugin.settings.minimapLineGap,
       includeComments: this.plugin.settings.includeCommentsInMinimap,
       includeImages: this.plugin.settings.includeImagesInMinimap,
+      includeFlagTypes: this.plugin.settings.showFlagTypesInMinimap,
       hiddenFlags: new Set(
         (this.plugin.settings.minimapHiddenFlags || []).map((s) =>
           String(s || "").toLowerCase(),

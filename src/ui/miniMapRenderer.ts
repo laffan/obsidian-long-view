@@ -20,6 +20,7 @@ export interface MiniMapOptions {
   minimapLineGap: number;
   includeComments: boolean;
   includeImages?: boolean;
+  includeFlagTypes?: boolean;
   hiddenFlags?: Set<string>; // lowercased flag types to hide
   hiddenSectionFlags?: Set<string>; // lowercased section flag types to hide
 }
@@ -55,6 +56,7 @@ export class MiniMapRenderer extends Component {
   private minimapLineGap: number;
   private includeComments: boolean;
   private includeImages: boolean;
+  private includeFlagTypes: boolean;
   private hiddenFlags: Set<string>;
   private hiddenSectionFlags: Set<string>;
 
@@ -65,6 +67,7 @@ export class MiniMapRenderer extends Component {
     this.minimapLineGap = options.minimapLineGap;
     this.includeComments = options.includeComments;
     this.includeImages = options.includeImages !== false;
+    this.includeFlagTypes = options.includeFlagTypes === true;
     this.hiddenFlags = new Set(
       Array.from(options.hiddenFlags ?? new Set<string>()).map((s) =>
         String(s || "").toLowerCase(),
@@ -259,15 +262,29 @@ export class MiniMapRenderer extends Component {
           });
 
           // If this heading has a callout, display the callout title below it at 0.5 opacity
-          if (
-            headingInfo.callout &&
-            !this.isSectionFlagHidden(headingInfo.callout.type)
-          ) {
-            const calloutTitleEl = flowEl.createDiv({
-              cls: "long-view-minimap-callout-title",
+        if (
+          headingInfo.callout &&
+          !this.isSectionFlagHidden(headingInfo.callout.type)
+        ) {
+          const calloutTitleEl = flowEl.createDiv({
+            cls: "long-view-minimap-callout-title",
+          });
+          // Optionally include the TYPE label for section flags, except SUMMARY
+          const calloutType = String(headingInfo.callout.type || "").toUpperCase();
+          const showType = this.includeFlagTypes && calloutType !== "SUMMARY";
+          const titleText = headingInfo.callout.title || "";
+          if (showType) {
+            // Render TYPE label followed by title text
+            const typeSpan = calloutTitleEl.createSpan({
+              cls: "long-view-minimap-flag-type",
+              text: calloutType,
             });
-            calloutTitleEl.setText(headingInfo.callout.title);
+            calloutTitleEl.createSpan({ text: titleText ? " — " : "" });
+            calloutTitleEl.createSpan({ text: titleText });
+          } else {
+            calloutTitleEl.setText(titleText);
           }
+        }
         } else if (fragment.type === "text") {
           // Ensure we have a flowEl for content before any heading
           if (!flowEl) {
@@ -329,7 +346,7 @@ export class MiniMapRenderer extends Component {
             flagEl.addClass("is-missing-flag");
           }
 
-          // Show only the message, not the type name
+          // Compose content: optional TYPE label (except COMMENT), then message
           let messageText: string;
           const baseMessage =
             flagInfo.message.split("|")[0]?.trim() ?? flagInfo.message;
@@ -337,6 +354,14 @@ export class MiniMapRenderer extends Component {
             messageText = baseMessage.length > 0 ? baseMessage : "Missing";
           } else {
             messageText = getFirstWords(baseMessage, 10);
+          }
+          const showTypeLabel = this.includeFlagTypes && flagTypeUpper !== "COMMENT";
+          if (showTypeLabel) {
+            flagEl.createSpan({
+              cls: "long-view-minimap-flag-type",
+              text: flagTypeUpper,
+            });
+            flagEl.createSpan({ text: ": " });
           }
           flagEl.createSpan({
             cls: "long-view-minimap-flag-message",

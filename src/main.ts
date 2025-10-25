@@ -192,6 +192,10 @@ export default class LongViewPlugin extends Plugin {
       this.settings.includeImagesInMinimap =
         DEFAULT_SETTINGS.includeImagesInMinimap;
     }
+    if (typeof persisted?.showFlagTypesInMinimap !== "boolean") {
+      this.settings.showFlagTypesInMinimap =
+        DEFAULT_SETTINGS.showFlagTypesInMinimap;
+    }
     if (!Array.isArray(persisted?.minimapHiddenFlags)) {
       this.settings.minimapHiddenFlags = [
         ...DEFAULT_SETTINGS.minimapHiddenFlags,
