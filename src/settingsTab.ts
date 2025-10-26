@@ -482,6 +482,7 @@ export class LongViewSettingTab extends PluginSettingTab {
     );
     this.addMinimapInput(section, "Flag label size", "flag", 8, 18, 1, "px");
     this.addLineGapInput(section);
+    this.addCurrentPositionColorInput(section);
   }
 
   private addMinimapInput(
@@ -538,6 +539,21 @@ export class LongViewSettingTab extends PluginSettingTab {
         }
         text.inputEl.classList.remove("long-view-input-invalid");
         this.plugin.settings.minimapLineGap = numericValue;
+        await this.plugin.saveSettings();
+        await this.plugin.refreshOpenViews();
+      });
+    });
+  }
+
+  private addCurrentPositionColorInput(parent: HTMLElement): void {
+    const setting = new Setting(parent)
+      .setName("Current position color")
+      .setDesc("Color for highlighting the current section in the minimap.");
+
+    setting.addColorPicker((picker) => {
+      picker.setValue(this.plugin.settings.currentPositionColor);
+      picker.onChange(async (value) => {
+        this.plugin.settings.currentPositionColor = value;
         await this.plugin.saveSettings();
         await this.plugin.refreshOpenViews();
       });

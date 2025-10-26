@@ -312,7 +312,12 @@ img.long-view-minimap-image {
 }
 
 .long-view-minimap-heading.is-active {
-    color: var(--interactive-accent);
+    color: var(--long-view-current-position-color, #ff0000);
+}
+
+/* Highlight the innermost left border for the current position */
+.long-view-minimap-hierarchy-level:has(> .long-view-minimap-section-body > .long-view-minimap-heading.is-active) {
+    border-left-color: var(--long-view-current-position-color, #ff0000);
 }
 
 /* Minimap callout background wrapper for section tinting */

@@ -28,6 +28,7 @@ export interface LongViewSettings {
   minimapHiddenSectionFlags: string[];
   minimapFontSizes: MinimapFontSettings;
   minimapLineGap: number;
+  currentPositionColor: string; // color for current position highlight in minimap
 }
 
 export const DEFAULT_FLAG_COLORS: FlagColorMap = {
@@ -92,4 +93,5 @@ export const DEFAULT_SETTINGS: LongViewSettings = {
     flag: 12,
   },
   minimapLineGap: 2,
+  currentPositionColor: "#ff0000", // vivid red for current position
 };

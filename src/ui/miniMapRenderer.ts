@@ -23,6 +23,7 @@ export interface MiniMapOptions {
   includeFlagTypes?: boolean;
   hiddenFlags?: Set<string>; // lowercased flag types to hide
   hiddenSectionFlags?: Set<string>; // lowercased section flag types to hide
+  currentPositionColor: string; // color for current position highlight
 }
 
 interface RenderedSection {
@@ -59,6 +60,7 @@ export class MiniMapRenderer extends Component {
   private includeFlagTypes: boolean;
   private hiddenFlags: Set<string>;
   private hiddenSectionFlags: Set<string>;
+  private currentPositionColor: string;
 
   constructor(options: MiniMapOptions) {
     super();
@@ -68,6 +70,7 @@ export class MiniMapRenderer extends Component {
     this.includeComments = options.includeComments;
     this.includeImages = options.includeImages !== false;
     this.includeFlagTypes = options.includeFlagTypes === true;
+    this.currentPositionColor = options.currentPositionColor;
     this.hiddenFlags = new Set(
       Array.from(options.hiddenFlags ?? new Set<string>()).map((s) =>
         String(s || "").toLowerCase(),
@@ -709,6 +712,10 @@ export class MiniMapRenderer extends Component {
     this.contentWrapperEl.style.setProperty(
       "--long-view-minimap-gap",
       `${this.minimapLineGap}px`,
+    );
+    this.contentWrapperEl.style.setProperty(
+      "--long-view-current-position-color",
+      this.currentPositionColor,
     );
   }
 
