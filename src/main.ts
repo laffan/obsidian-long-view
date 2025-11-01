@@ -73,16 +73,16 @@ export default class LongViewPlugin extends Plugin {
 
     this.addCommand({
       id: "long-view-copy-document-html",
-      name: "Copy document without flags (HTML)",
+      name: "Copy document without flags (rich text)",
       callback: () =>
-        this.copyStrippedContent({ scope: "document", format: "html" }),
+        this.copyStrippedContent({ scope: "document", format: "rich" }),
     });
 
     this.addCommand({
       id: "long-view-copy-selection-html",
-      name: "Copy selection without flags (HTML)",
+      name: "Copy selection without flags (rich text)",
       callback: () =>
-        this.copyStrippedContent({ scope: "selection", format: "html" }),
+        this.copyStrippedContent({ scope: "selection", format: "rich" }),
     });
   }
 
@@ -252,7 +252,7 @@ export default class LongViewPlugin extends Plugin {
 
   private async copyStrippedContent(options: {
     scope: "document" | "selection";
-    format: "text" | "html";
+    format: "text" | "rich";
   }): Promise<void> {
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
     if (!view) {
@@ -281,13 +281,15 @@ export default class LongViewPlugin extends Plugin {
     }
 
     try {
-      if (options.format === "html") {
+      if (options.format === "rich") {
         const html = await this.renderMarkdownToHtml(
           cleaned,
           view.file?.path ?? "",
         );
-        await this.writeClipboard(cleaned, html);
+        // Copy as rich text (formatted HTML on macOS, share sheet on iPad)
+        await this.writeClipboardRich(cleaned, html);
       } else {
+        // Copy as plain text
         await this.writeClipboard(cleaned);
       }
       new Notice("Copied to clipboard");
@@ -319,54 +321,84 @@ export default class LongViewPlugin extends Plugin {
     return html;
   }
 
-  private async writeClipboard(text: string, html?: string): Promise<void> {
-    // Try Electron clipboard first (desktop Obsidian)
-    const electron = (window as any).require?.("electron");
-    const electronClipboard = electron?.clipboard;
-    if (electronClipboard) {
-      try {
-        if (html) {
-          electronClipboard.write({ text, html });
-        } else {
-          electronClipboard.writeText(text);
-        }
-        return;
-      } catch (error) {
-        console.warn("Electron clipboard failed, falling back to navigator API", error);
-      }
-    }
-
-    // Try modern Clipboard API with ClipboardItem (supports both text and HTML)
-    const navClipboard = navigator?.clipboard as Clipboard | undefined;
-    const ClipboardItem = (window as any).ClipboardItem as
-      | (new (items: Record<string, Blob | Promise<Blob>>) => any)
-      | undefined;
-
-    if (html && navClipboard && ClipboardItem && navClipboard.write) {
-      try {
-        const item = new ClipboardItem({
-          "text/plain": Promise.resolve(new Blob([text], { type: "text/plain" })),
-          "text/html": Promise.resolve(new Blob([html], { type: "text/html" })),
-        });
-        await navClipboard.write([item]);
-        return;
-      } catch (error) {
-        console.warn("ClipboardItem write failed, falling back to writeText", error);
-      }
-    }
-
-    // Fallback: use writeText for text-only (works on iOS/iPad and most modern browsers)
+  private async writeClipboard(text: string): Promise<void> {
+    // Try navigator clipboard API first (works on both desktop and mobile)
+    const navClipboard = navigator?.clipboard;
     if (navClipboard?.writeText) {
       try {
         await navClipboard.writeText(text);
         return;
       } catch (error) {
-        console.warn("Clipboard writeText failed", error);
+        console.warn("Navigator clipboard writeText failed, trying Electron", error);
+      }
+    }
+
+    // Fallback to Electron clipboard (desktop Obsidian)
+    const electron = (window as any).require?.("electron");
+    const electronClipboard = electron?.clipboard;
+    if (electronClipboard) {
+      try {
+        electronClipboard.writeText(text);
+        return;
+      } catch (error) {
+        console.warn("Electron clipboard failed", error);
         throw new Error("Clipboard API unavailable: " + (error instanceof Error ? error.message : "unknown error"));
       }
     }
 
     throw new Error("Clipboard API unavailable on this platform");
+  }
+
+  private async writeClipboardRich(text: string, html: string): Promise<void> {
+    // Try Electron clipboard first (desktop Obsidian) - supports rich text
+    const electron = (window as any).require?.("electron");
+    const electronClipboard = electron?.clipboard;
+    if (electronClipboard) {
+      try {
+        electronClipboard.write({ text, html });
+        return;
+      } catch (error) {
+        console.warn("Electron clipboard write failed, trying web API", error);
+      }
+    }
+
+    // Try modern Clipboard API with ClipboardItem (supports both text and HTML)
+    const navClipboard = navigator?.clipboard;
+    const ClipboardItem = (window as any).ClipboardItem as
+      | (new (items: Record<string, Blob>) => any)
+      | undefined;
+
+    if (navClipboard && ClipboardItem && navClipboard.write) {
+      try {
+        const item = new ClipboardItem({
+          "text/plain": new Blob([text], { type: "text/plain" }),
+          "text/html": new Blob([html], { type: "text/html" }),
+        });
+        await navClipboard.write([item]);
+        return;
+      } catch (error) {
+        console.warn("ClipboardItem with both formats failed, trying share sheet", error);
+        // Try share sheet on mobile (iPad/iOS)
+        if (navigator.share) {
+          try {
+            // Create a data URL with the HTML content
+            const blob = new Blob([html], { type: "text/html" });
+            const file = new File([blob], "content.html", { type: "text/html" });
+
+            await navigator.share({
+              title: "Document content",
+              files: [file],
+            });
+            return;
+          } catch (shareError) {
+            console.warn("Share API failed, falling back to text", shareError);
+          }
+        }
+      }
+    }
+
+    // Fallback to plain text if rich text not supported
+    await this.writeClipboard(text);
   }
 
   private generateFlagStyles(): string {
