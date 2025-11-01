@@ -59,28 +59,28 @@ export default class LongViewPlugin extends Plugin {
 
     this.addCommand({
       id: "long-view-copy-document",
-      name: "Long View: Copy document without flags",
+      name: "Copy document without flags",
       callback: () =>
         this.copyStrippedContent({ scope: "document", format: "text" }),
     });
 
     this.addCommand({
       id: "long-view-copy-selection",
-      name: "Long View: Copy selection without flags",
+      name: "Copy selection without flags",
       callback: () =>
         this.copyStrippedContent({ scope: "selection", format: "text" }),
     });
 
     this.addCommand({
       id: "long-view-copy-document-html",
-      name: "Long View: Copy document without flags (HTML)",
+      name: "Copy document without flags (HTML)",
       callback: () =>
         this.copyStrippedContent({ scope: "document", format: "html" }),
     });
 
     this.addCommand({
       id: "long-view-copy-selection-html",
-      name: "Long View: Copy selection without flags (HTML)",
+      name: "Copy selection without flags (HTML)",
       callback: () =>
         this.copyStrippedContent({ scope: "selection", format: "html" }),
     });
@@ -320,42 +320,53 @@ export default class LongViewPlugin extends Plugin {
   }
 
   private async writeClipboard(text: string, html?: string): Promise<void> {
-    const navClipboard = navigator?.clipboard as Clipboard | undefined;
-    const clipboardItemCtor = (window as any).ClipboardItem as
-      | (new (items: Record<string, Blob>) => any)
-      | undefined;
-
-    if (html && navClipboard && clipboardItemCtor && navClipboard.write) {
-      const item = new clipboardItemCtor({
-        "text/plain": new Blob([text], { type: "text/plain" }),
-        "text/html": new Blob([html], { type: "text/html" }),
-      });
-      await navClipboard.write([item]);
-      return;
-    }
-
-    if (!html && navClipboard?.writeText) {
-      await navClipboard.writeText(text);
-      return;
-    }
-
+    // Try Electron clipboard first (desktop Obsidian)
     const electron = (window as any).require?.("electron");
     const electronClipboard = electron?.clipboard;
     if (electronClipboard) {
-      if (html) {
-        electronClipboard.write({ text, html });
-      } else {
-        electronClipboard.writeText(text);
+      try {
+        if (html) {
+          electronClipboard.write({ text, html });
+        } else {
+          electronClipboard.writeText(text);
+        }
+        return;
+      } catch (error) {
+        console.warn("Electron clipboard failed, falling back to navigator API", error);
       }
-      return;
     }
 
+    // Try modern Clipboard API with ClipboardItem (supports both text and HTML)
+    const navClipboard = navigator?.clipboard as Clipboard | undefined;
+    const ClipboardItem = (window as any).ClipboardItem as
+      | (new (items: Record<string, Blob | Promise<Blob>>) => any)
+      | undefined;
+
+    if (html && navClipboard && ClipboardItem && navClipboard.write) {
+      try {
+        const item = new ClipboardItem({
+          "text/plain": Promise.resolve(new Blob([text], { type: "text/plain" })),
+          "text/html": Promise.resolve(new Blob([html], { type: "text/html" })),
+        });
+        await navClipboard.write([item]);
+        return;
+      } catch (error) {
+        console.warn("ClipboardItem write failed, falling back to writeText", error);
+      }
+    }
+
+    // Fallback: use writeText for text-only (works on iOS/iPad and most modern browsers)
     if (navClipboard?.writeText) {
-      await navClipboard.writeText(text);
-      return;
+      try {
+        await navClipboard.writeText(text);
+        return;
+      } catch (error) {
+        console.warn("Clipboard writeText failed", error);
+        throw new Error("Clipboard API unavailable: " + (error instanceof Error ? error.message : "unknown error"));
+      }
     }
 
-    throw new Error("Clipboard API unavailable");
+    throw new Error("Clipboard API unavailable on this platform");
   }
 
   private generateFlagStyles(): string {
