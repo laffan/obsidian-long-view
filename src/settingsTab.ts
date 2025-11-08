@@ -345,6 +345,8 @@ export class LongViewSettingTab extends PluginSettingTab {
   private renderCustomFlags(parent: HTMLElement): void {
     parent.empty();
     const makeRow = (index: number, name: string, color: string) => {
+      let currentName = name;
+      let currentColor = color;
       const row = new Setting(parent);
       row.setName("");
       row.setDesc("");
@@ -354,16 +356,25 @@ export class LongViewSettingTab extends PluginSettingTab {
         text.setValue(name);
         text.onChange(async (val) => {
           const newName = (val || "").trim();
-          const upperOld = name.toUpperCase();
+          const upperOld = currentName.toUpperCase();
           const upperNew = newName.toUpperCase();
-          // Update list
-          this.plugin.settings.customFlags[index].name = upperNew;
-          // Move color mapping
-          const colorVal = this.plugin.settings.flagColors[upperOld];
-          if (upperOld && upperOld !== upperNew && colorVal) {
+
+          // Remove old color mapping
+          if (upperOld) {
             delete this.plugin.settings.flagColors[upperOld];
-            this.plugin.settings.flagColors[upperNew] = colorVal;
           }
+
+          // Update list with new name
+          this.plugin.settings.customFlags[index].name = upperNew;
+
+          // Add new color mapping
+          if (upperNew) {
+            this.plugin.settings.flagColors[upperNew] = currentColor;
+          }
+
+          // Update current name for future edits
+          currentName = upperNew;
+
           await this.persistAndRefresh();
         });
       });
@@ -371,11 +382,10 @@ export class LongViewSettingTab extends PluginSettingTab {
       row.addColorPicker((picker) => {
         picker.setValue(color);
         picker.onChange(async (val) => {
-          const upper = (
-            this.plugin.settings.customFlags[index].name || name
-          ).toUpperCase();
+          const upper = currentName.toUpperCase();
           this.plugin.settings.customFlags[index].color = val;
           this.plugin.settings.flagColors[upper] = val;
+          currentColor = val;
           await this.persistAndRefresh();
         });
       });
@@ -385,9 +395,7 @@ export class LongViewSettingTab extends PluginSettingTab {
           .setIcon("trash")
           .setTooltip("Remove flag")
           .onClick(async () => {
-            const upper = (
-              this.plugin.settings.customFlags[index].name || name
-            ).toUpperCase();
+            const upper = currentName.toUpperCase();
             this.plugin.settings.customFlags.splice(index, 1);
             delete this.plugin.settings.flagColors[upper];
             await this.persistAndRefresh();

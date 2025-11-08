@@ -1,6 +1,6 @@
 {
   "name": "obsidian-long-view",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "View your document as a grid of interactive page thumbnails with zoom capability",
   "main": "main.js",
   "scripts": {
