@@ -21,6 +21,7 @@ export interface MiniMapOptions {
   includeComments: boolean;
   includeImages?: boolean;
   includeFlagTypes?: boolean;
+  wrapFlagText?: boolean; // wrap flag text to content width
   hiddenFlags?: Set<string>; // lowercased flag types to hide
   hiddenSectionFlags?: Set<string>; // lowercased section flag types to hide
   currentPositionColor: string; // color for current position highlight
@@ -58,6 +59,7 @@ export class MiniMapRenderer extends Component {
   private includeComments: boolean;
   private includeImages: boolean;
   private includeFlagTypes: boolean;
+  private wrapFlagText: boolean;
   private hiddenFlags: Set<string>;
   private hiddenSectionFlags: Set<string>;
   private currentPositionColor: string;
@@ -70,6 +72,7 @@ export class MiniMapRenderer extends Component {
     this.includeComments = options.includeComments;
     this.includeImages = options.includeImages !== false;
     this.includeFlagTypes = options.includeFlagTypes === true;
+    this.wrapFlagText = options.wrapFlagText !== false;
     this.currentPositionColor = options.currentPositionColor;
     this.hiddenFlags = new Set(
       Array.from(options.hiddenFlags ?? new Set<string>()).map((s) =>
@@ -347,6 +350,9 @@ export class MiniMapRenderer extends Component {
           flagEl.dataset.flagType = flagTypeLower;
           if (isMissingFlag) {
             flagEl.addClass("is-missing-flag");
+          }
+          if (this.wrapFlagText) {
+            flagEl.addClass("wrap-flag-text");
           }
 
           // Compose content: optional TYPE label (except COMMENT), then message

@@ -59,6 +59,9 @@ export class LongViewSettingTab extends PluginSettingTab {
     );
     this.addCommentToggle(commentContainer);
 
+    // Wrap flag text toggle
+    this.addWrapFlagTextToggle(section);
+
     // Custom flags list
     section.createEl("h4", { text: "Custom Flags" });
     const listContainer = section.createDiv({ cls: "long-view-custom-flags" });
@@ -315,6 +318,24 @@ export class LongViewSettingTab extends PluginSettingTab {
         .setValue(this.plugin.settings.includeCommentsInMinimap)
         .onChange(async (value) => {
           this.plugin.settings.includeCommentsInMinimap = value;
+          await this.plugin.saveSettings();
+          await this.plugin.refreshOpenViews();
+        });
+    });
+  }
+
+  private addWrapFlagTextToggle(parent: HTMLElement): void {
+    const setting = new Setting(parent)
+      .setName("Wrap flag text")
+      .setDesc(
+        "When enabled, flag text wraps to the content width. When disabled, flag text extends past the content area.",
+      );
+
+    setting.addToggle((toggle) => {
+      toggle
+        .setValue(this.plugin.settings.wrapFlagText)
+        .onChange(async (value) => {
+          this.plugin.settings.wrapFlagText = value;
           await this.plugin.saveSettings();
           await this.plugin.refreshOpenViews();
         });

@@ -556,6 +556,7 @@ export class LongView extends ItemView {
       includeComments: this.plugin.settings.includeCommentsInMinimap,
       includeImages: this.plugin.settings.includeImagesInMinimap,
       includeFlagTypes: this.plugin.settings.showFlagTypesInMinimap,
+      wrapFlagText: this.plugin.settings.wrapFlagText,
       currentPositionColor: this.plugin.settings.currentPositionColor,
       hiddenFlags: new Set(
         (this.plugin.settings.minimapHiddenFlags || []).map((s) =>

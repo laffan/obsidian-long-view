@@ -364,6 +364,19 @@ img.long-view-minimap-image {
     transition: opacity 0.15s ease;
 }
 
+/* Wrapped flag text variant */
+.long-view-minimap-flag.wrap-flag-text {
+    max-width: 100%;
+    display: inline-block;
+}
+
+.long-view-minimap-flag.wrap-flag-text .long-view-minimap-flag-type,
+.long-view-minimap-flag.wrap-flag-text .long-view-minimap-flag-message {
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
 .long-view-minimap-flag.long-view-flag-type-todo {
     background-color: #ffd700;
     color: #4a3900;
