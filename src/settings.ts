@@ -22,6 +22,7 @@ export interface LongViewSettings {
   showFlagTypesInMinimap: boolean; // show TYPE labels in minimap for flags/callouts (excludes COMMENT and SUMMARY)
   wrapFlagText: boolean; // wrap flag text to content width instead of extending past it
   minimapHiddenFlags: string[]; // uppercased flag types to hide in minimap
+  summaryHiddenFlags: string[]; // uppercased flag types to hide in summary view
   flagColors: FlagColorMap;
   customFlags: CustomFlag[];
   sectionFlagColors: SectionFlagColorMap;
@@ -81,6 +82,7 @@ export const DEFAULT_SETTINGS: LongViewSettings = {
   showFlagTypesInMinimap: false,
   wrapFlagText: true,
   minimapHiddenFlags: [],
+  summaryHiddenFlags: ["COMMENT"], // Hide comments by default in summary view
   flagColors: { ...DEFAULT_FLAG_COLORS },
   customFlags: [
     { name: "REWRITE", color: DEFAULT_FLAG_COLORS.REWRITE },

@@ -221,6 +221,18 @@ export default class LongViewPlugin extends Plugin {
       );
       this.settings.minimapHiddenSectionFlags = Array.from(sectionSet);
     }
+    if (!Array.isArray(persisted?.summaryHiddenFlags)) {
+      this.settings.summaryHiddenFlags = [
+        ...DEFAULT_SETTINGS.summaryHiddenFlags,
+      ];
+    } else {
+      const summarySet = new Set<string>(
+        (persisted!.summaryHiddenFlags as string[]).map((s) =>
+          String(s || "").toUpperCase(),
+        ),
+      );
+      this.settings.summaryHiddenFlags = Array.from(summarySet);
+    }
   }
 
   async saveSettings() {

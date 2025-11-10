@@ -148,10 +148,10 @@ export class LongView extends ItemView {
       pagedBtn.toggleClass("is-active", this.currentMode === "paged");
       summaryBtn.toggleClass("is-active", this.currentMode === "summary");
 
-      // Show controls container for minimap and paged modes only
+      // Show controls container for all modes except when empty
       this.controlsContainerEl?.toggleClass(
         "is-visible",
-        this.currentMode === "minimap" || this.currentMode === "paged",
+        this.currentMode === "minimap" || this.currentMode === "paged" || this.currentMode === "summary",
       );
 
       // Toggle visibility of zoom vs filters within controls
@@ -160,7 +160,7 @@ export class LongView extends ItemView {
         this.currentMode === "paged",
       );
       if (this.filtersButtonEl) {
-        if (this.currentMode === "minimap") {
+        if (this.currentMode === "minimap" || this.currentMode === "summary") {
           this.filtersButtonEl.style.display = "";
         } else {
           this.filtersButtonEl.style.display = "none";
@@ -364,7 +364,13 @@ export class LongView extends ItemView {
       return row;
     };
 
-    // Static toggles
+    // For summary mode, only show flag filters
+    if (this.currentMode === "summary") {
+      this.buildSummaryFilters(addToggleRow);
+      return;
+    }
+
+    // Static toggles (minimap mode only)
     addToggleRow({
       key: "text",
       label: "Text",
@@ -570,6 +576,88 @@ export class LongView extends ItemView {
               Array.from(updated);
             await this.plugin.saveSettings();
             await this.updateView();
+          },
+        });
+      }
+    }
+  }
+
+  private buildSummaryFilters(addToggleRow: (opts: {
+    key: string;
+    label: string;
+    checked: boolean;
+    onChange: (val: boolean) => void;
+    prefixDotColor?: string;
+  }) => void): void {
+    // Collect all flag types from summary data
+    const usedFlags = new Set<string>();
+
+    try {
+      for (const folderPath in this.summaryData) {
+        const folderData = this.summaryData[folderPath];
+        for (const filePath in folderData) {
+          const fileData = folderData[filePath];
+          for (const flagType in fileData.flagsByType) {
+            usedFlags.add(flagType.toUpperCase());
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    const sortedFlags = Array.from(usedFlags).sort();
+
+    const getHiddenFlags = () =>
+      new Set(
+        (this.plugin.settings.summaryHiddenFlags || []).map((s) =>
+          String(s || "").toUpperCase(),
+        ),
+      );
+
+    if (sortedFlags.length > 0) {
+      // Master toggle for all flags
+      const hiddenFlags = getHiddenFlags();
+      const anyVisible = sortedFlags.some((flag) => !hiddenFlags.has(flag));
+
+      addToggleRow({
+        key: "all-flags-toggle",
+        label: "All flags",
+        checked: anyVisible,
+        onChange: async (val) => {
+          const updated = getHiddenFlags();
+          if (val) {
+            sortedFlags.forEach((flag) => updated.delete(flag));
+          } else {
+            sortedFlags.forEach((flag) => updated.add(flag));
+          }
+          this.plugin.settings.summaryHiddenFlags = Array.from(updated);
+          await this.plugin.saveSettings();
+          await this.refreshSummary();
+        },
+      });
+
+      this.filtersPanelEl!.createDiv({ cls: "long-view-filter-sep" });
+
+      // Individual flag toggles
+      for (const flagType of sortedFlags) {
+        const color = getFlagColor(flagType);
+        const isVisible = !hiddenFlags.has(flagType);
+        addToggleRow({
+          key: `flag-${flagType}`,
+          label: flagType,
+          checked: isVisible,
+          prefixDotColor: color,
+          onChange: async (val) => {
+            const updated = getHiddenFlags();
+            if (val) {
+              updated.delete(flagType);
+            } else {
+              updated.add(flagType);
+            }
+            this.plugin.settings.summaryHiddenFlags = Array.from(updated);
+            await this.plugin.saveSettings();
+            await this.refreshSummary();
           },
         });
       }
@@ -1058,10 +1146,18 @@ export class LongView extends ItemView {
       containerEl: this.contentContainerEl,
       flagsByFolder: this.summaryData,
       onFlagClick: (filePath, lineNumber) => this.openFileAtLine(filePath, lineNumber),
+      hiddenFlags: new Set(
+        (this.plugin.settings.summaryHiddenFlags || []).map((s) =>
+          String(s || "").toLowerCase(),
+        ),
+      ),
     });
 
     await this.summaryRenderer.render();
     console.log("Long View: Summary view rendered");
+
+    // Rebuild filters panel to show available flags
+    this.buildFiltersPanel();
   }
 
   private async openFileAtLine(filePath: string, lineNumber: number): Promise<void> {

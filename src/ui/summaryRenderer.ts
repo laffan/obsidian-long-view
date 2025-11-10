@@ -7,6 +7,7 @@ export interface SummaryRendererOptions {
   containerEl: HTMLElement;
   flagsByFolder: FlagsByFolder;
   onFlagClick: (filePath: string, lineNumber: number) => void;
+  hiddenFlags: Set<string>;
 }
 
 export class SummaryRenderer extends Component {
@@ -14,6 +15,7 @@ export class SummaryRenderer extends Component {
   private containerEl: HTMLElement;
   private flagsByFolder: FlagsByFolder;
   private onFlagClick: (filePath: string, lineNumber: number) => void;
+  private hiddenFlags: Set<string>;
 
   constructor(options: SummaryRendererOptions) {
     super();
@@ -21,6 +23,7 @@ export class SummaryRenderer extends Component {
     this.containerEl = options.containerEl;
     this.flagsByFolder = options.flagsByFolder;
     this.onFlagClick = options.onFlagClick;
+    this.hiddenFlags = options.hiddenFlags;
   }
 
   async render(): Promise<void> {
@@ -42,11 +45,13 @@ export class SummaryRenderer extends Component {
       const folderData = this.flagsByFolder[folderPath];
       const folderEl = this.containerEl.createDiv({ cls: "long-view-summary-folder" });
 
-      // Folder header
-      const folderHeader = folderEl.createDiv({
-        cls: "long-view-summary-folder-name",
-        text: folderPath === "/" ? "Root" : folderPath + "/",
-      });
+      // Folder header (skip "Root" label for root folder)
+      if (folderPath !== "/") {
+        const folderHeader = folderEl.createDiv({
+          cls: "long-view-summary-folder-name",
+          text: folderPath + "/",
+        });
+      }
 
       // Sort files alphabetically
       const sortedFiles = Object.keys(folderData).sort();
@@ -62,8 +67,10 @@ export class SummaryRenderer extends Component {
           text: fileName,
         });
 
-        // Sort flag types alphabetically
-        const sortedFlagTypes = Object.keys(fileData.flagsByType).sort();
+        // Sort flag types alphabetically and filter out hidden ones
+        const sortedFlagTypes = Object.keys(fileData.flagsByType)
+          .filter((flagType) => !this.hiddenFlags.has(flagType.toUpperCase()))
+          .sort();
 
         for (const flagType of sortedFlagTypes) {
           const instances = fileData.flagsByType[flagType];
