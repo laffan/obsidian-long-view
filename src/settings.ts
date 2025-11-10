@@ -1,4 +1,4 @@
-export type ViewMode = "minimap" | "paged";
+export type ViewMode = "minimap" | "paged" | "summary";
 
 // Colors for flags keyed by uppercase flag name
 export type FlagColorMap = Record<string, string>;

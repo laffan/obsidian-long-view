@@ -80,7 +80,7 @@
     gap: 8px;
     position: relative;
     padding: 12px;
-    border-bottom: 1px solid rgba(var(--background-modifier-border-rgb, 0, 0, 0), 0.5);
+    border-bottom: 1px solid var(--background-modifier-border);
 }
 
 .long-view-controls.is-visible {
@@ -181,7 +181,7 @@
     position: relative;
     width: 100%;
     max-width: none;
-    padding: 10px;
+    padding: 0;
     border-radius: 12px;
     background: transparent;
     box-shadow: none;
@@ -825,4 +825,78 @@ img.long-view-minimap-image {
 .long-view-comment-settings {
     border-top: 1px solid var(--background-modifier-border);
     padding-top: 8px;
+}
+
+/* =========================== */
+/* Summary Mode Styles */
+/* =========================== */
+
+.long-view-summary {
+    padding: 20px;
+    max-width: 800px;
+}
+
+.long-view-summary-empty {
+    padding: 40px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.long-view-summary-folder {
+    margin-bottom: 24px;
+}
+
+.long-view-summary-folder-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-normal);
+    margin-bottom: 8px;
+}
+
+.long-view-summary-file {
+    margin-left: 16px;
+    margin-bottom: 16px;
+}
+
+.long-view-summary-file-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.long-view-summary-flag-type {
+    margin-left: 16px;
+    margin-bottom: 12px;
+}
+
+.long-view-summary-flag-type-name {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.long-view-summary-flag-list {
+    margin-left: 8px;
+}
+
+.long-view-summary-flag-item {
+    margin-bottom: 2px;
+}
+
+.long-view-summary-flag-link {
+    font-size: 13px;
+    color: var(--text-normal);
+    text-decoration: none;
+    cursor: pointer;
+    display: block;
+    padding: 2px 0;
+}
+
+.long-view-summary-flag-link:hover {
+    color: var(--text-accent);
+    text-decoration: underline;
 }

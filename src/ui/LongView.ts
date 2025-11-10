@@ -14,9 +14,11 @@ import { paginateDocument } from "../utils/simplePagination";
 import { buildMinimapSections } from "../utils/minimapParser";
 import { MiniMapRenderer } from "./miniMapRenderer";
 import { renderPageContent } from "./simplePageRenderer";
+import { SummaryRenderer } from "./summaryRenderer";
 import { ViewMode } from "../settings";
 import { getFlagColor } from "../flags/flagColors";
 import { getSectionFlagColor } from "../flags/sectionFlagColors";
+import { scanVaultForFlags, FlagsByFolder } from "../utils/vaultScanner";
 import type LongViewPlugin from "../main";
 
 export const LONG_VIEW_TYPE = "long-view";
@@ -28,6 +30,8 @@ export class LongView extends ItemView {
   private contentContainerEl: HTMLElement;
   private currentFile: TFile | null = null;
   private minimapRenderer: MiniMapRenderer | null = null;
+  private summaryRenderer: SummaryRenderer | null = null;
+  private summaryData: FlagsByFolder = {};
   private editorScrollEl: HTMLElement | null = null;
   private activeLeaf: WorkspaceLeaf | null = null;
   private documentLength = 0;
@@ -142,8 +146,9 @@ export class LongView extends ItemView {
     const updateModeUI = () => {
       minimapBtn.toggleClass("is-active", this.currentMode === "minimap");
       pagedBtn.toggleClass("is-active", this.currentMode === "paged");
+      summaryBtn.toggleClass("is-active", this.currentMode === "summary");
 
-      // Show controls container for both modes
+      // Show controls container for minimap and paged modes only
       this.controlsContainerEl?.toggleClass(
         "is-visible",
         this.currentMode === "minimap" || this.currentMode === "paged",
@@ -167,9 +172,13 @@ export class LongView extends ItemView {
     this.buildFiltersPanel();
 
     // Refresh button handler
-    refreshBtn.addEventListener("click", (e) => {
+    refreshBtn.addEventListener("click", async (e) => {
       e.preventDefault();
-      this.updateView();
+      if (this.currentMode === "summary") {
+        await this.refreshSummary();
+      } else {
+        this.updateView();
+      }
     });
 
     // Mode button handlers
@@ -191,10 +200,14 @@ export class LongView extends ItemView {
       this.updateView();
     });
 
-    // Summary button handler (placeholder for now)
-    summaryBtn.addEventListener("click", (e) => {
+    // Summary button handler
+    summaryBtn.addEventListener("click", async (e) => {
       e.preventDefault();
-      // TODO: Implement summary view
+      this.currentMode = "summary";
+      this.plugin.settings.viewMode = "summary";
+      await this.plugin.saveSettings();
+      updateModeUI();
+      await this.refreshSummary();
     });
 
     // Zoom slider handler
@@ -259,9 +272,18 @@ export class LongView extends ItemView {
       this.minimapRenderer.unload();
       this.minimapRenderer = null;
     }
+    if (this.summaryRenderer) {
+      this.summaryRenderer.unload();
+      this.summaryRenderer = null;
+    }
   }
 
   async updateView(): Promise<void> {
+    // Summary mode doesn't update based on active file
+    if (this.currentMode === "summary") {
+      return;
+    }
+
     let activeFile: TFile | null = null;
     if (this.linkedLeafId) {
       const linked = this.findLeafById(this.linkedLeafId);
@@ -1003,5 +1025,66 @@ export class LongView extends ItemView {
       Math.floor(this.documentLength * ratio),
     );
     this.minimapRenderer.highlightHeadingForOffset(approxOffset);
+  }
+
+  private async refreshSummary(): Promise<void> {
+    console.log("Long View: Scanning vault for flags...");
+    const startTime = Date.now();
+    this.summaryData = await scanVaultForFlags(this.app);
+    const duration = Date.now() - startTime;
+    console.log(`Long View: Vault scan completed in ${duration}ms`);
+    await this.renderSummary();
+  }
+
+  private async renderSummary(): Promise<void> {
+    this.detachEditorScrollHandler();
+    this.contentContainerEl.empty();
+    this.contentContainerEl.addClass("long-view-summary-mode");
+    this.contentContainerEl.removeClass("long-view-minimap-mode");
+    this.contentContainerEl.removeClass("long-view-paged-mode");
+
+    if (this.minimapRenderer) {
+      this.minimapRenderer.unload();
+      this.minimapRenderer = null;
+    }
+
+    if (this.summaryRenderer) {
+      this.summaryRenderer.unload();
+      this.summaryRenderer = null;
+    }
+
+    this.summaryRenderer = new SummaryRenderer({
+      app: this.app,
+      containerEl: this.contentContainerEl,
+      flagsByFolder: this.summaryData,
+      onFlagClick: (filePath, lineNumber) => this.openFileAtLine(filePath, lineNumber),
+    });
+
+    await this.summaryRenderer.render();
+    console.log("Long View: Summary view rendered");
+  }
+
+  private async openFileAtLine(filePath: string, lineNumber: number): Promise<void> {
+    const file = this.app.vault.getAbstractFileByPath(filePath);
+    if (!(file instanceof TFile)) {
+      console.error(`Long View: File not found: ${filePath}`);
+      return;
+    }
+
+    // Open the file
+    const leaf = this.app.workspace.getLeaf(false);
+    await leaf.openFile(file);
+
+    // Wait a bit for the file to open
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Get the editor and scroll to line
+    const view = leaf.view;
+    if (view instanceof MarkdownView && view.editor) {
+      const editor = view.editor;
+      const pos = { line: lineNumber - 1, ch: 0 }; // Line numbers are 0-indexed
+      editor.setCursor(pos);
+      editor.scrollIntoView({ from: pos, to: pos }, true);
+    }
   }
 }
