@@ -838,7 +838,7 @@ img.long-view-minimap-image {
 /* =========================== */
 
 .long-view-summary {
-    padding: 20px;
+    padding: 0;
     max-width: 800px;
 }
 
@@ -849,25 +849,45 @@ img.long-view-minimap-image {
     font-size: 14px;
 }
 
+.long-view-summary-folder-wrapper {
+    border-top: 1px solid var(--background-modifier-border);
+}
+
+.long-view-summary-folder-wrapper:first-child {
+    border-top: none;
+}
+
 .long-view-summary-folder {
-    margin-bottom: 24px;
+    padding: 20px;
 }
 
 .long-view-summary-folder-name {
-    font-size: 14px;
+    font-size: var(--long-view-summary-font-size, 14px);
+    line-height: var(--long-view-summary-line-height, 1.5);
     font-weight: 400;
     color: var(--text-normal);
     opacity: 0.5;
     margin-bottom: 8px;
 }
 
+.long-view-summary-file-wrapper {
+    border-top: 1px dashed var(--background-modifier-border);
+    margin-top: 16px;
+}
+
+.long-view-summary-file-wrapper:first-child {
+    border-top: none;
+    margin-top: 0;
+}
+
 .long-view-summary-file {
+    padding-top: 16px;
     margin-left: 16px;
-    margin-bottom: 16px;
 }
 
 .long-view-summary-file-name {
-    font-size: 14px;
+    font-size: var(--long-view-summary-font-size, 14px);
+    line-height: var(--long-view-summary-line-height, 1.5);
     font-weight: 600;
     color: var(--text-normal);
     margin-bottom: 8px;
@@ -884,6 +904,9 @@ img.long-view-minimap-image {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 4px;
+    padding: 4px 8px;
+    border-radius: 3px;
+    display: inline-block;
 }
 
 .long-view-summary-flag-list {
@@ -895,7 +918,8 @@ img.long-view-minimap-image {
 }
 
 .long-view-summary-flag-link {
-    font-size: 13px;
+    font-size: var(--long-view-summary-font-size, 14px);
+    line-height: var(--long-view-summary-line-height, 1.5);
     color: var(--text-normal);
     text-decoration: none;
     cursor: pointer;

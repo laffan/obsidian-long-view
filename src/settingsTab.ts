@@ -21,6 +21,7 @@ export class LongViewSettingTab extends PluginSettingTab {
     this.renderFlagColorSection(containerEl);
     this.renderSectionFlagSection(containerEl);
     this.renderMinimapTextSection(containerEl);
+    this.renderSummaryViewSection(containerEl);
   }
 
   private renderFlagColorSection(parent: HTMLElement): void {
@@ -583,6 +584,75 @@ export class LongViewSettingTab extends PluginSettingTab {
       picker.setValue(this.plugin.settings.currentPositionColor);
       picker.onChange(async (value) => {
         this.plugin.settings.currentPositionColor = value;
+        await this.plugin.saveSettings();
+        await this.plugin.refreshOpenViews();
+      });
+    });
+  }
+
+  private renderSummaryViewSection(parent: HTMLElement): void {
+    const section = parent.createDiv({ cls: "long-view-settings-section" });
+    section.createEl("h3", { text: "Summary View" });
+    section.createEl("p", {
+      text: "Control text size and spacing in the summary view.",
+    });
+
+    this.addSummaryFontSizeInput(section);
+    this.addSummaryLineHeightInput(section);
+  }
+
+  private addSummaryFontSizeInput(parent: HTMLElement): void {
+    const setting = new Setting(parent)
+      .setName("Font size")
+      .setDesc("Base font size for summary view text (px). Range: 10-24px.");
+
+    setting.addText((text) => {
+      text.inputEl.type = "number";
+      text.inputEl.step = "1";
+      text.inputEl.min = "10";
+      text.inputEl.max = "24";
+      text.setValue(this.plugin.settings.summaryViewSettings.fontSize.toString());
+      text.onChange(async (value) => {
+        const numericValue = parseFloat(value);
+        if (
+          Number.isNaN(numericValue) ||
+          numericValue < 10 ||
+          numericValue > 24
+        ) {
+          text.inputEl.classList.add("long-view-input-invalid");
+          return;
+        }
+        text.inputEl.classList.remove("long-view-input-invalid");
+        this.plugin.settings.summaryViewSettings.fontSize = numericValue;
+        await this.plugin.saveSettings();
+        await this.plugin.refreshOpenViews();
+      });
+    });
+  }
+
+  private addSummaryLineHeightInput(parent: HTMLElement): void {
+    const setting = new Setting(parent)
+      .setName("Line height")
+      .setDesc("Line height multiplier for summary view text. Range: 1.0-2.5.");
+
+    setting.addText((text) => {
+      text.inputEl.type = "number";
+      text.inputEl.step = "0.1";
+      text.inputEl.min = "1.0";
+      text.inputEl.max = "2.5";
+      text.setValue(this.plugin.settings.summaryViewSettings.lineHeight.toString());
+      text.onChange(async (value) => {
+        const numericValue = parseFloat(value);
+        if (
+          Number.isNaN(numericValue) ||
+          numericValue < 1.0 ||
+          numericValue > 2.5
+        ) {
+          text.inputEl.classList.add("long-view-input-invalid");
+          return;
+        }
+        text.inputEl.classList.remove("long-view-input-invalid");
+        this.plugin.settings.summaryViewSettings.lineHeight = numericValue;
         await this.plugin.saveSettings();
         await this.plugin.refreshOpenViews();
       });

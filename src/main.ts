@@ -233,6 +233,22 @@ export default class LongViewPlugin extends Plugin {
       );
       this.settings.summaryHiddenFlags = Array.from(summarySet);
     }
+    if (!persisted?.summaryViewSettings) {
+      this.settings.summaryViewSettings = {
+        ...DEFAULT_SETTINGS.summaryViewSettings,
+      };
+    } else {
+      this.settings.summaryViewSettings = {
+        fontSize:
+          typeof persisted.summaryViewSettings.fontSize === "number"
+            ? persisted.summaryViewSettings.fontSize
+            : DEFAULT_SETTINGS.summaryViewSettings.fontSize,
+        lineHeight:
+          typeof persisted.summaryViewSettings.lineHeight === "number"
+            ? persisted.summaryViewSettings.lineHeight
+            : DEFAULT_SETTINGS.summaryViewSettings.lineHeight,
+      };
+    }
   }
 
   async saveSettings() {

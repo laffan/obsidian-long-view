@@ -12,6 +12,11 @@ export interface MinimapFontSettings {
   flag: number; // flag message font size (px)
 }
 
+export interface SummaryViewSettings {
+  fontSize: number; // base font size for summary view (px)
+  lineHeight: number; // line height multiplier (e.g., 1.5)
+}
+
 export interface LongViewSettings {
   defaultZoom: number;
   viewMode: ViewMode;
@@ -30,6 +35,7 @@ export interface LongViewSettings {
   minimapHiddenSectionFlags: string[];
   minimapFontSizes: MinimapFontSettings;
   minimapLineGap: number;
+  summaryViewSettings: SummaryViewSettings;
   currentPositionColor: string; // color for current position highlight in minimap
 }
 
@@ -97,5 +103,9 @@ export const DEFAULT_SETTINGS: LongViewSettings = {
     flag: 12,
   },
   minimapLineGap: 2,
+  summaryViewSettings: {
+    fontSize: 14,
+    lineHeight: 1.5,
+  },
   currentPositionColor: "#ff0000", // vivid red for current position
 };

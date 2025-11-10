@@ -1,6 +1,7 @@
 import { App, Component } from "obsidian";
 import { FlagsByFolder, FlagInstance } from "../utils/vaultScanner";
 import { getFlagColor } from "../flags/flagColors";
+import chroma from "../utils/chroma";
 
 export interface SummaryRendererOptions {
   app: App;
@@ -8,6 +9,8 @@ export interface SummaryRendererOptions {
   flagsByFolder: FlagsByFolder;
   onFlagClick: (filePath: string, lineNumber: number) => void;
   hiddenFlags: Set<string>;
+  fontSize: number;
+  lineHeight: number;
 }
 
 export class SummaryRenderer extends Component {
@@ -16,6 +19,8 @@ export class SummaryRenderer extends Component {
   private flagsByFolder: FlagsByFolder;
   private onFlagClick: (filePath: string, lineNumber: number) => void;
   private hiddenFlags: Set<string>;
+  private fontSize: number;
+  private lineHeight: number;
 
   constructor(options: SummaryRendererOptions) {
     super();
@@ -24,11 +29,28 @@ export class SummaryRenderer extends Component {
     this.flagsByFolder = options.flagsByFolder;
     this.onFlagClick = options.onFlagClick;
     this.hiddenFlags = options.hiddenFlags;
+    this.fontSize = options.fontSize;
+    this.lineHeight = options.lineHeight;
+  }
+
+  private getContrastingTextColor(hex: string): string {
+    try {
+      const color = chroma(hex);
+      const contrastWhite = chroma.contrast(color, "#ffffff");
+      const contrastBlack = chroma.contrast(color, "#1a1a1a");
+      return contrastWhite >= contrastBlack ? "#ffffff" : "#1a1a1a";
+    } catch (error) {
+      return "#1a1a1a";
+    }
   }
 
   async render(): Promise<void> {
     this.containerEl.empty();
     this.containerEl.addClass("long-view-summary");
+
+    // Apply font settings as CSS variables
+    this.containerEl.style.setProperty("--long-view-summary-font-size", `${this.fontSize}px`);
+    this.containerEl.style.setProperty("--long-view-summary-line-height", `${this.lineHeight}`);
 
     // Sort folders alphabetically
     const sortedFolders = Object.keys(this.flagsByFolder).sort();
@@ -43,7 +65,10 @@ export class SummaryRenderer extends Component {
 
     for (const folderPath of sortedFolders) {
       const folderData = this.flagsByFolder[folderPath];
-      const folderEl = this.containerEl.createDiv({ cls: "long-view-summary-folder" });
+
+      // Folder wrapper with border
+      const folderWrapperEl = this.containerEl.createDiv({ cls: "long-view-summary-folder-wrapper" });
+      const folderEl = folderWrapperEl.createDiv({ cls: "long-view-summary-folder" });
 
       // Folder header (skip "Root" label for root folder)
       if (folderPath !== "/") {
@@ -58,7 +83,10 @@ export class SummaryRenderer extends Component {
 
       for (const filePath of sortedFiles) {
         const fileData = folderData[filePath];
-        const fileEl = folderEl.createDiv({ cls: "long-view-summary-file" });
+
+        // File wrapper with border
+        const fileWrapperEl = folderEl.createDiv({ cls: "long-view-summary-file-wrapper" });
+        const fileEl = fileWrapperEl.createDiv({ cls: "long-view-summary-file" });
 
         // File name (indented)
         const fileName = fileData.file.basename + ".md";
@@ -78,13 +106,15 @@ export class SummaryRenderer extends Component {
 
           const flagTypeEl = fileEl.createDiv({ cls: "long-view-summary-flag-type" });
 
-          // Flag type header with color
+          // Flag type header with background color and contrasting text
           const flagColor = getFlagColor(flagType);
+          const textColor = this.getContrastingTextColor(flagColor);
           const flagTypeHeader = flagTypeEl.createDiv({
             cls: "long-view-summary-flag-type-name",
             text: flagType,
           });
-          flagTypeHeader.style.color = flagColor;
+          flagTypeHeader.style.backgroundColor = flagColor;
+          flagTypeHeader.style.color = textColor;
 
           // Flag instances
           const flagListEl = flagTypeEl.createDiv({ cls: "long-view-summary-flag-list" });

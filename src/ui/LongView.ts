@@ -1151,6 +1151,8 @@ export class LongView extends ItemView {
           String(s || "").toLowerCase(),
         ),
       ),
+      fontSize: this.plugin.settings.summaryViewSettings.fontSize,
+      lineHeight: this.plugin.settings.summaryViewSettings.lineHeight,
     });
 
     await this.summaryRenderer.render();
