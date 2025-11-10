@@ -177,7 +177,7 @@
 
 /* Summary mode styling */
 .long-view-content.long-view-summary-mode {
-    padding: 16px;
+    padding: 0;
     background: var(--background-primary);
 }
 
@@ -858,7 +858,7 @@ img.long-view-minimap-image {
 }
 
 .long-view-summary-folder {
-    padding: 20px;
+    padding: 10px;
 }
 
 .long-view-summary-folder-name {
@@ -872,17 +872,15 @@ img.long-view-minimap-image {
 
 .long-view-summary-file-wrapper {
     border-top: 1px dashed var(--background-modifier-border);
-    margin-top: 16px;
 }
 
 .long-view-summary-file-wrapper:first-child {
     border-top: none;
-    margin-top: 0;
 }
 
 .long-view-summary-file {
-    padding-top: 16px;
-    margin-left: 16px;
+    padding-top: 5px;
+    margin-left: 0;
 }
 
 .long-view-summary-file-name {
@@ -904,8 +902,8 @@ img.long-view-minimap-image {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 4px;
-    padding: 4px 8px;
-    border-radius: 3px;
+    padding: 2px 4px;
+    border-radius: 2px;
     display: inline-block;
 }
 

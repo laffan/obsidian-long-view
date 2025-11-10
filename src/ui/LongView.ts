@@ -1148,7 +1148,7 @@ export class LongView extends ItemView {
       onFlagClick: (filePath, lineNumber) => this.openFileAtLine(filePath, lineNumber),
       hiddenFlags: new Set(
         (this.plugin.settings.summaryHiddenFlags || []).map((s) =>
-          String(s || "").toLowerCase(),
+          String(s || "").toUpperCase(),
         ),
       ),
       fontSize: this.plugin.settings.summaryViewSettings.fontSize,
