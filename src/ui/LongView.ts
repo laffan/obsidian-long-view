@@ -36,7 +36,7 @@ export class LongView extends ItemView {
   private currentZoom: number = 15;
   private modeButtonsEl: HTMLElement | null = null;
   private zoomControlEl: HTMLElement | null = null;
-  private filtersContainerEl: HTMLElement | null = null;
+  private controlsContainerEl: HTMLElement | null = null;
   private filtersPanelEl: HTMLElement | null = null;
   private filtersButtonEl: HTMLElement | null = null;
   private linkedLeafId: string | null = null;
@@ -105,8 +105,11 @@ export class LongView extends ItemView {
       attr: { href: "#" },
     });
 
+    // Controls container (for zoom and filters)
+    this.controlsContainerEl = headerEl.createDiv({ cls: "long-view-controls" });
+
     // Zoom control (only visible in paged mode)
-    this.zoomControlEl = headerEl.createDiv({ cls: "long-view-zoom-control" });
+    this.zoomControlEl = this.controlsContainerEl.createDiv({ cls: "long-view-zoom-control" });
     const zoomLabel = this.zoomControlEl.createSpan({
       cls: "long-view-zoom-label",
       text: `Zoom: ${this.currentZoom}%`,
@@ -122,13 +125,12 @@ export class LongView extends ItemView {
     });
 
     // Filters dropdown (only visible in minimap mode)
-    this.filtersContainerEl = headerEl.createDiv({ cls: "long-view-filters" });
-    this.filtersButtonEl = this.filtersContainerEl.createEl("a", {
+    this.filtersButtonEl = this.controlsContainerEl.createEl("a", {
       text: "Filters",
       cls: "long-view-filters-link",
       attr: { href: "#" },
     });
-    this.filtersPanelEl = this.filtersContainerEl.createDiv({
+    this.filtersPanelEl = this.controlsContainerEl.createDiv({
       cls: "long-view-filters-panel",
     });
 
@@ -140,14 +142,25 @@ export class LongView extends ItemView {
     const updateModeUI = () => {
       minimapBtn.toggleClass("is-active", this.currentMode === "minimap");
       pagedBtn.toggleClass("is-active", this.currentMode === "paged");
+
+      // Show controls container for both modes
+      this.controlsContainerEl?.toggleClass(
+        "is-visible",
+        this.currentMode === "minimap" || this.currentMode === "paged",
+      );
+
+      // Toggle visibility of zoom vs filters within controls
       this.zoomControlEl?.toggleClass(
         "is-visible",
         this.currentMode === "paged",
       );
-      this.filtersContainerEl?.toggleClass(
-        "is-visible",
-        this.currentMode === "minimap",
-      );
+      if (this.filtersButtonEl) {
+        if (this.currentMode === "minimap") {
+          this.filtersButtonEl.style.display = "";
+        } else {
+          this.filtersButtonEl.style.display = "none";
+        }
+      }
     };
 
     updateModeUI();
@@ -205,9 +218,9 @@ export class LongView extends ItemView {
 
     // Close filters when clicking outside
     const onDocClick = (e: MouseEvent) => {
-      if (!this.filtersContainerEl) return;
+      if (!this.controlsContainerEl) return;
       const target = e.target as HTMLElement;
-      if (!this.filtersContainerEl.contains(target)) {
+      if (!this.controlsContainerEl.contains(target)) {
         this.filtersPanelEl?.removeClass("is-open");
       }
     };
