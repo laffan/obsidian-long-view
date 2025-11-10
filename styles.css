@@ -167,6 +167,7 @@
     justify-content: flex-start;
     align-items: flex-start;
     background: var(--background-primary);
+    padding: 15px;
 }
 
 /* Paged mode styling */
