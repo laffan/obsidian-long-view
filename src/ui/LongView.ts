@@ -668,9 +668,11 @@ export class LongView extends ItemView {
   private async renderMinimap(file: TFile): Promise<void> {
     this.detachEditorScrollHandler();
     this.contentContainerEl.empty();
-    this.contentContainerEl.addClass("long-view-minimap-mode");
+    // Clear all mode classes first, then add only the one we need
     this.contentContainerEl.removeClass("long-view-paged-mode");
     this.contentContainerEl.removeClass("long-view-summary-mode");
+    this.contentContainerEl.removeClass("long-view-minimap-mode");
+    this.contentContainerEl.addClass("long-view-minimap-mode");
 
     if (this.minimapRenderer) {
       this.minimapRenderer.unload();
@@ -723,9 +725,11 @@ export class LongView extends ItemView {
   private async renderPaged(file: TFile): Promise<void> {
     this.detachEditorScrollHandler();
     this.contentContainerEl.empty();
-    this.contentContainerEl.addClass("long-view-paged-mode");
-    this.contentContainerEl.removeClass("long-view-minimap-mode");
+    // Clear all mode classes first, then add only the one we need
+    this.contentContainerEl.removeClass("long-view-paged-mode");
     this.contentContainerEl.removeClass("long-view-summary-mode");
+    this.contentContainerEl.removeClass("long-view-minimap-mode");
+    this.contentContainerEl.addClass("long-view-paged-mode");
 
     if (this.minimapRenderer) {
       this.minimapRenderer.unload();
