@@ -66,6 +66,27 @@ export class SummaryRenderer extends Component {
     for (const folderPath of sortedFolders) {
       const folderData = this.flagsByFolder[folderPath];
 
+      // First, determine which files have visible flags
+      const sortedFiles = Object.keys(folderData).sort();
+      const visibleFiles: string[] = [];
+
+      for (const filePath of sortedFiles) {
+        const fileData = folderData[filePath];
+        const sortedFlagTypes = Object.keys(fileData.flagsByType)
+          .filter((flagType) => !this.hiddenFlags.has(flagType.toUpperCase()))
+          .sort();
+
+        // Only include files that have at least one visible flag type
+        if (sortedFlagTypes.length > 0) {
+          visibleFiles.push(filePath);
+        }
+      }
+
+      // Skip this folder if no files have visible flags
+      if (visibleFiles.length === 0) {
+        continue;
+      }
+
       // Folder wrapper with border
       const folderWrapperEl = this.containerEl.createDiv({ cls: "long-view-summary-folder-wrapper" });
       const folderEl = folderWrapperEl.createDiv({ cls: "long-view-summary-folder" });
@@ -78,10 +99,7 @@ export class SummaryRenderer extends Component {
         });
       }
 
-      // Sort files alphabetically
-      const sortedFiles = Object.keys(folderData).sort();
-
-      for (const filePath of sortedFiles) {
+      for (const filePath of visibleFiles) {
         const fileData = folderData[filePath];
 
         // File wrapper with border

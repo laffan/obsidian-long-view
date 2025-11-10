@@ -158,11 +158,11 @@
     flex: 1;
     overflow: auto;
     background: var(--background-secondary);
+    padding: 15px;
 }
 
 /* Minimap mode styling */
 .long-view-content.long-view-minimap-mode {
-    padding: 16px;
     display: flex;
     justify-content: flex-start;
     align-items: flex-start;
@@ -171,7 +171,6 @@
 
 /* Paged mode styling */
 .long-view-content.long-view-paged-mode {
-    padding: 20px;
     display: block;
 }
 
