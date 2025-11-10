@@ -8,7 +8,9 @@ export interface SummaryRendererOptions {
   containerEl: HTMLElement;
   flagsByFolder: FlagsByFolder;
   onFlagClick: (filePath: string, lineNumber: number) => void;
+  onFolderToggle: (folderPath: string, enabled: boolean) => void;
   hiddenFlags: Set<string>;
+  disabledFolders: Set<string>;
   fontSize: number;
   lineHeight: number;
 }
@@ -18,7 +20,9 @@ export class SummaryRenderer extends Component {
   private containerEl: HTMLElement;
   private flagsByFolder: FlagsByFolder;
   private onFlagClick: (filePath: string, lineNumber: number) => void;
+  private onFolderToggle: (folderPath: string, enabled: boolean) => void;
   private hiddenFlags: Set<string>;
+  private disabledFolders: Set<string>;
   private fontSize: number;
   private lineHeight: number;
 
@@ -28,7 +32,9 @@ export class SummaryRenderer extends Component {
     this.containerEl = options.containerEl;
     this.flagsByFolder = options.flagsByFolder;
     this.onFlagClick = options.onFlagClick;
+    this.onFolderToggle = options.onFolderToggle;
     this.hiddenFlags = options.hiddenFlags;
+    this.disabledFolders = options.disabledFolders;
     this.fontSize = options.fontSize;
     this.lineHeight = options.lineHeight;
   }
@@ -65,6 +71,7 @@ export class SummaryRenderer extends Component {
 
     for (const folderPath of sortedFolders) {
       const folderData = this.flagsByFolder[folderPath];
+      const isFolderDisabled = this.disabledFolders.has(folderPath);
 
       // First, determine which files have visible flags
       const sortedFiles = Object.keys(folderData).sort();
@@ -82,24 +89,41 @@ export class SummaryRenderer extends Component {
         }
       }
 
-      // Skip this folder if no files have visible flags
-      if (visibleFiles.length === 0) {
-        continue;
-      }
+      // Always show folders, even if they have no visible flags
 
       // Folder wrapper with border
       const folderWrapperEl = this.containerEl.createDiv({ cls: "long-view-summary-folder-wrapper" });
       const folderEl = folderWrapperEl.createDiv({ cls: "long-view-summary-folder" });
 
-      // Folder header (skip "Root" label for root folder)
+      // Folder header with checkbox (skip "Root" label for root folder)
+      const folderHeaderContainer = folderEl.createDiv({ cls: "long-view-summary-folder-header" });
+
       if (folderPath !== "/") {
-        const folderHeader = folderEl.createDiv({
+        const folderNameEl = folderHeaderContainer.createDiv({
           cls: "long-view-summary-folder-name",
           text: folderPath + "/",
         });
+      } else {
+        // For root folder, show "Root" label
+        const folderNameEl = folderHeaderContainer.createDiv({
+          cls: "long-view-summary-folder-name",
+          text: "Root",
+        });
       }
 
-      for (const filePath of visibleFiles) {
+      // Add checkbox to the right
+      const checkboxEl = folderHeaderContainer.createEl("input", {
+        type: "checkbox",
+        cls: "long-view-summary-folder-checkbox",
+      });
+      checkboxEl.checked = !isFolderDisabled;
+      checkboxEl.addEventListener("change", () => {
+        this.onFolderToggle(folderPath, checkboxEl.checked);
+      });
+
+      // Only render files if folder is not disabled
+      if (!isFolderDisabled) {
+        for (const filePath of visibleFiles) {
         const fileData = folderData[filePath];
 
         // File wrapper with border
@@ -152,7 +176,8 @@ export class SummaryRenderer extends Component {
             });
           }
         }
-      }
+        }
+      } // end if (!isFolderDisabled)
     }
   }
 }

@@ -158,7 +158,7 @@
     flex: 1;
     overflow: auto;
     background: var(--background-secondary);
-    padding: 15px;
+    padding: 12px;
 }
 
 /* Minimap mode styling */
@@ -860,13 +860,26 @@ img.long-view-minimap-image {
     padding: 10px;
 }
 
+.long-view-summary-folder-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
 .long-view-summary-folder-name {
     font-size: var(--long-view-summary-font-size, 14px);
     line-height: var(--long-view-summary-line-height, 1.5);
     font-weight: 400;
     color: var(--text-normal);
     opacity: 0.5;
-    margin-bottom: 8px;
+    margin-bottom: 0;
+}
+
+.long-view-summary-folder-checkbox {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
 }
 
 .long-view-summary-file-wrapper {

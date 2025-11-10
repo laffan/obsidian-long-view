@@ -28,6 +28,7 @@ export interface LongViewSettings {
   wrapFlagText: boolean; // wrap flag text to content width instead of extending past it
   minimapHiddenFlags: string[]; // uppercased flag types to hide in minimap
   summaryHiddenFlags: string[]; // uppercased flag types to hide in summary view
+  summaryDisabledFolders: string[]; // folder paths that are disabled in summary view
   flagColors: FlagColorMap;
   customFlags: CustomFlag[];
   sectionFlagColors: SectionFlagColorMap;
@@ -89,6 +90,7 @@ export const DEFAULT_SETTINGS: LongViewSettings = {
   wrapFlagText: true,
   minimapHiddenFlags: [],
   summaryHiddenFlags: ["COMMENT"], // Hide comments by default in summary view
+  summaryDisabledFolders: [], // No folders disabled by default
   flagColors: { ...DEFAULT_FLAG_COLORS },
   customFlags: [
     { name: "REWRITE", color: DEFAULT_FLAG_COLORS.REWRITE },

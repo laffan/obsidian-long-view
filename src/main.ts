@@ -249,6 +249,11 @@ export default class LongViewPlugin extends Plugin {
             : DEFAULT_SETTINGS.summaryViewSettings.lineHeight,
       };
     }
+    if (!Array.isArray(persisted?.summaryDisabledFolders)) {
+      this.settings.summaryDisabledFolders = [
+        ...DEFAULT_SETTINGS.summaryDisabledFolders,
+      ];
+    }
   }
 
   async saveSettings() {

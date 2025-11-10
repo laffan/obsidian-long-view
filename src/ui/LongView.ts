@@ -279,8 +279,9 @@ export class LongView extends ItemView {
   }
 
   async updateView(): Promise<void> {
-    // Summary mode doesn't update based on active file
+    // Summary mode refreshes its own view
     if (this.currentMode === "summary") {
+      await this.refreshSummary();
       return;
     }
 
@@ -1146,11 +1147,26 @@ export class LongView extends ItemView {
       containerEl: this.contentContainerEl,
       flagsByFolder: this.summaryData,
       onFlagClick: (filePath, lineNumber) => this.openFileAtLine(filePath, lineNumber),
+      onFolderToggle: async (folderPath, enabled) => {
+        if (enabled) {
+          // Remove from disabled list
+          this.plugin.settings.summaryDisabledFolders =
+            this.plugin.settings.summaryDisabledFolders.filter(f => f !== folderPath);
+        } else {
+          // Add to disabled list
+          if (!this.plugin.settings.summaryDisabledFolders.includes(folderPath)) {
+            this.plugin.settings.summaryDisabledFolders.push(folderPath);
+          }
+        }
+        await this.plugin.saveSettings();
+        await this.refreshSummary();
+      },
       hiddenFlags: new Set(
         (this.plugin.settings.summaryHiddenFlags || []).map((s) =>
           String(s || "").toUpperCase(),
         ),
       ),
+      disabledFolders: new Set(this.plugin.settings.summaryDisabledFolders || []),
       fontSize: this.plugin.settings.summaryViewSettings.fontSize,
       lineHeight: this.plugin.settings.summaryViewSettings.lineHeight,
     });
