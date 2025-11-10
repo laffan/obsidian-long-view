@@ -670,6 +670,7 @@ export class LongView extends ItemView {
     this.contentContainerEl.empty();
     this.contentContainerEl.addClass("long-view-minimap-mode");
     this.contentContainerEl.removeClass("long-view-paged-mode");
+    this.contentContainerEl.removeClass("long-view-summary-mode");
 
     if (this.minimapRenderer) {
       this.minimapRenderer.unload();
@@ -724,6 +725,7 @@ export class LongView extends ItemView {
     this.contentContainerEl.empty();
     this.contentContainerEl.addClass("long-view-paged-mode");
     this.contentContainerEl.removeClass("long-view-minimap-mode");
+    this.contentContainerEl.removeClass("long-view-summary-mode");
 
     if (this.minimapRenderer) {
       this.minimapRenderer.unload();
