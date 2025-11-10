@@ -22,45 +22,42 @@
 /* Mode switcher buttons */
 .long-view-mode-buttons {
     display: flex;
-    gap: 4px;
+    gap: 8px;
     align-items: center;
 }
 
-.long-view-mode-button {
-    background: var(--background-secondary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    padding: 4px 12px;
+.long-view-mode-link {
+    background: none;
+    border: 0;
+    padding: 0;
     font-size: 13px;
-    cursor: pointer;
     color: var(--text-muted);
-    transition: all 0.15s ease;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.15s ease;
 }
 
-.long-view-mode-button:hover {
-    background: var(--background-modifier-hover);
-    color: var(--text-normal);
+.long-view-mode-link:hover {
+    color: var(--text-accent-hover, var(--interactive-accent));
 }
 
-.long-view-mode-button.is-active {
-    background: var(--interactive-accent);
-    color: var(--text-on-accent);
-    border-color: var(--interactive-accent);
+.long-view-mode-link.is-active {
+    color: var(--text-accent);
+    text-decoration: underline;
 }
 
 .long-view-refresh-button {
-    background: var(--background-secondary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 4px;
-    padding: 4px 8px;
+    background: none;
+    border: 0;
+    padding: 0;
     font-size: 16px;
     cursor: pointer;
-    transition: all 0.15s ease;
-    margin-left: 4px;
+    transition: opacity 0.15s ease;
+    margin-right: 8px;
 }
 
 .long-view-refresh-button:hover {
-    background: var(--background-modifier-hover);
+    opacity: 0.7;
 }
 
 /* Zoom control */

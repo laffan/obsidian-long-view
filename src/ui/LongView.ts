@@ -79,15 +79,6 @@ export class LongView extends ItemView {
     // Mode switcher buttons
     this.modeButtonsEl = headerEl.createDiv({ cls: "long-view-mode-buttons" });
 
-    const minimapBtn = this.modeButtonsEl.createEl("button", {
-      text: "Minimap",
-      cls: "long-view-mode-button",
-    });
-    const pagedBtn = this.modeButtonsEl.createEl("button", {
-      text: "Paged",
-      cls: "long-view-mode-button",
-    });
-
     // Refresh button
     const refreshBtn = this.modeButtonsEl.createEl("button", {
       text: "♻️",
@@ -95,6 +86,17 @@ export class LongView extends ItemView {
       attr: {
         "aria-label": "Refresh view",
       },
+    });
+
+    const minimapBtn = this.modeButtonsEl.createEl("a", {
+      text: "map",
+      cls: "long-view-mode-link",
+      attr: { href: "#" },
+    });
+    const pagedBtn = this.modeButtonsEl.createEl("a", {
+      text: "pages",
+      cls: "long-view-mode-link",
+      attr: { href: "#" },
     });
 
     // Zoom control (only visible in paged mode)
@@ -146,7 +148,8 @@ export class LongView extends ItemView {
     this.buildFiltersPanel();
 
     // Mode button handlers
-    minimapBtn.addEventListener("click", () => {
+    minimapBtn.addEventListener("click", (e) => {
+      e.preventDefault();
       this.currentMode = "minimap";
       this.plugin.settings.viewMode = "minimap";
       this.plugin.saveSettings();
@@ -154,7 +157,8 @@ export class LongView extends ItemView {
       this.updateView();
     });
 
-    pagedBtn.addEventListener("click", () => {
+    pagedBtn.addEventListener("click", (e) => {
+      e.preventDefault();
       this.currentMode = "paged";
       this.plugin.settings.viewMode = "paged";
       this.plugin.saveSettings();
