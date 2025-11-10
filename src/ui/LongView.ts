@@ -79,11 +79,12 @@ export class LongView extends ItemView {
     // Mode switcher buttons
     this.modeButtonsEl = headerEl.createDiv({ cls: "long-view-mode-buttons" });
 
-    // Refresh button
-    const refreshBtn = this.modeButtonsEl.createEl("button", {
+    // Refresh link
+    const refreshBtn = this.modeButtonsEl.createEl("a", {
       text: "♻️",
-      cls: "long-view-refresh-button",
+      cls: "long-view-mode-link",
       attr: {
+        href: "#",
         "aria-label": "Refresh view",
       },
     });
@@ -95,6 +96,11 @@ export class LongView extends ItemView {
     });
     const pagedBtn = this.modeButtonsEl.createEl("a", {
       text: "pages",
+      cls: "long-view-mode-link",
+      attr: { href: "#" },
+    });
+    const summaryBtn = this.modeButtonsEl.createEl("a", {
+      text: "summary",
       cls: "long-view-mode-link",
       attr: { href: "#" },
     });
@@ -147,6 +153,12 @@ export class LongView extends ItemView {
     updateModeUI();
     this.buildFiltersPanel();
 
+    // Refresh button handler
+    refreshBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      this.updateView();
+    });
+
     // Mode button handlers
     minimapBtn.addEventListener("click", (e) => {
       e.preventDefault();
@@ -164,6 +176,12 @@ export class LongView extends ItemView {
       this.plugin.saveSettings();
       updateModeUI();
       this.updateView();
+    });
+
+    // Summary button handler (placeholder for now)
+    summaryBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      // TODO: Implement summary view
     });
 
     // Zoom slider handler
@@ -197,11 +215,6 @@ export class LongView extends ItemView {
     this.register(() =>
       document.removeEventListener("click", onDocClick, true),
     );
-
-    // Refresh button handler
-    refreshBtn.addEventListener("click", () => {
-      this.updateView();
-    });
 
     // Create main content area
     this.contentContainerEl = container.createDiv({ cls: "long-view-content" });

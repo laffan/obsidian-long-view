@@ -10,54 +10,46 @@
 /* Header with mode switcher and zoom */
 .long-view-header {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    flex-direction: column;
+    gap: 0;
+    padding: 8px 12px 0 12px;
     background: var(--background-primary);
-    border-bottom: 1px solid var(--background-modifier-border);
     flex-shrink: 0;
-    flex-wrap: wrap;
 }
 
-/* Mode switcher buttons */
+/* Mode switcher tabs */
 .long-view-mode-buttons {
     display: flex;
-    gap: 8px;
-    align-items: center;
+    gap: 0;
+    align-items: flex-end;
+    border-bottom: 1px solid var(--background-modifier-border);
 }
 
 .long-view-mode-link {
-    background: none;
-    border: 0;
-    padding: 0;
+    background: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    border-bottom: none;
+    padding: 6px 12px;
     font-size: 13px;
     color: var(--text-muted);
     text-decoration: none;
     cursor: pointer;
-    transition: color 0.15s ease;
+    transition: all 0.15s ease;
+    position: relative;
+    margin-right: -1px;
 }
 
 .long-view-mode-link:hover {
-    color: var(--text-accent-hover, var(--interactive-accent));
+    background: var(--background-modifier-hover);
+    color: var(--text-normal);
 }
 
 .long-view-mode-link.is-active {
-    color: var(--text-accent);
-    text-decoration: underline;
-}
-
-.long-view-refresh-button {
-    background: none;
-    border: 0;
-    padding: 0;
-    font-size: 16px;
-    cursor: pointer;
-    transition: opacity 0.15s ease;
-    margin-right: 8px;
-}
-
-.long-view-refresh-button:hover {
-    opacity: 0.7;
+    background: var(--background-primary);
+    color: var(--text-normal);
+    border-bottom: 1px solid var(--background-primary);
+    margin-bottom: -1px;
+    z-index: 1;
 }
 
 /* Zoom control */
@@ -65,8 +57,7 @@
     display: none;
     align-items: center;
     gap: 8px;
-    width: 100%;
-    flex-basis: 100%;
+    margin-bottom: 8px;
 }
 
 .long-view-zoom-control.is-visible {
@@ -89,9 +80,8 @@
     display: none;
     align-items: center;
     gap: 8px;
-    width: 100%;
-    flex-basis: 100%;
     position: relative;
+    margin-bottom: 8px;
 }
 
 .long-view-filters.is-visible {
