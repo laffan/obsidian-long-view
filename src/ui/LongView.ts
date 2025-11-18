@@ -311,19 +311,8 @@ export class LongView extends ItemView {
     this.documentLength = content.length;
 
     // Parse for both view modes independently so each gets optimal chunking
-    console.log("Long View: Parsing document...");
-    const pagedStart = Date.now();
     this.pages = paginateDocument(content);
-    const pagedDuration = Date.now() - pagedStart;
-    const minimapStart = Date.now();
     this.minimapSections = buildMinimapSections(content);
-    const minimapDuration = Date.now() - minimapStart;
-    console.log(
-      `Long View: Paged view created ${this.pages.length} sections in ${pagedDuration}ms`,
-    );
-    console.log(
-      `Long View: Minimap view created ${this.minimapSections.length} section(s) in ${minimapDuration}ms`,
-    );
 
     // Render based on current mode
     if (this.currentMode === "paged") {
@@ -717,10 +706,6 @@ export class LongView extends ItemView {
 
     await this.minimapRenderer.initialize(this.minimapSections);
     this.minimapRenderer.highlightHeadingForOffset(0);
-
-    console.log(
-      `Long View: Rendered minimap with ${this.minimapSections.length} section(s)`,
-    );
   }
 
   private async renderPaged(file: TFile): Promise<void> {
@@ -801,8 +786,6 @@ export class LongView extends ItemView {
     requestAnimationFrame(() => {
       this.updateZoom();
     });
-
-    console.log(`Long View: Rendered ${this.pages.length} pages in paged mode`);
   }
 
   private updateZoom(): void {
@@ -848,31 +831,21 @@ export class LongView extends ItemView {
     pageNumbers.forEach((pageNumber) => {
       pageNumber.style.fontSize = `${scaledFontSize}px`;
     });
-
-    console.log(
-      `Long View: Zoom ${this.currentZoom}%, fitting ${columnsToFit} columns (effective width: ${effectivePageWidth}px)`,
-    );
   }
 
   private scrollToOffset(offset: number): void {
     if (!this.currentFile) {
-      console.log("Long View: No current file");
       return;
     }
 
     const context = this.findMarkdownContext();
     if (!context) {
-      console.log(
-        "Long View: No markdown view found for file:",
-        this.currentFile?.path,
-      );
       return;
     }
 
     const { leaf, view } = context;
     const editor = view.editor;
     if (!editor) {
-      console.log("Long View: No editor found in markdown view");
       return;
     }
 
@@ -882,9 +855,6 @@ export class LongView extends ItemView {
     // Check if editor has offsetToPos method
     if (typeof (editor as any).offsetToPos === "function") {
       targetPos = (editor as any).offsetToPos(offset);
-      console.log(
-        `Long View: Using offsetToPos - scrolling to offset ${offset} -> line ${targetPos.line}, ch ${targetPos.ch}`,
-      );
     } else {
       // Fallback: manually convert offset to position
       const content = editor.getValue();
@@ -904,9 +874,6 @@ export class LongView extends ItemView {
       }
 
       targetPos = { line, ch };
-      console.log(
-        `Long View: Manual conversion - scrolling to offset ${offset} -> line ${targetPos.line}, ch ${targetPos.ch}`,
-      );
     }
 
     // Set cursor to target position
@@ -937,9 +904,6 @@ export class LongView extends ItemView {
     this.activeLeaf = context.leaf;
     const scrollElement = this.getScrollElementForView(context.view);
     if (!scrollElement) {
-      console.log(
-        "Long View: Unable to locate scroll element for markdown view",
-      );
       return;
     }
 
@@ -1125,11 +1089,7 @@ export class LongView extends ItemView {
   }
 
   private async refreshSummary(): Promise<void> {
-    console.log("Long View: Scanning vault for flags...");
-    const startTime = Date.now();
     this.summaryData = await scanVaultForFlags(this.app);
-    const duration = Date.now() - startTime;
-    console.log(`Long View: Vault scan completed in ${duration}ms`);
     await this.renderSummary();
   }
 
@@ -1180,7 +1140,6 @@ export class LongView extends ItemView {
     });
 
     await this.summaryRenderer.render();
-    console.log("Long View: Summary view rendered");
 
     // Rebuild filters panel to show available flags
     this.buildFiltersPanel();
