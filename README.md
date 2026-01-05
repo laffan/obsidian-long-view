@@ -6,7 +6,7 @@ Three document views to help keep track of a too-long markdown documents : mini-
 ## Inline Flags
 All three support a flagging syntax that is a slightly modified version of Obsidian's existing highlighter system.  In addition to the the double ==, add the flag name and colon (no spaces).  Flagged text can also be optionally broken down in to title and summary fragments by adding a pipe character. 
 
-`==FLAG: short title | summary of content (optional)==
+`==FLAG: short title | summary of content (optional)==`
 
 The built-in flags are:
 
