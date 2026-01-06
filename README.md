@@ -1,6 +1,6 @@
 # Long View
 
-Long View is an [Obsidian]((https://obsidian.md/) plugin to help keep track of long markdown documents. It is composed of three views :
+Long View is an [Obsidian](https://obsidian.md/) plugin to help keep track of long markdown documents. It is composed of three views :
 
 1. **mini-map view** : Document outline + mini text so you can see where you are in the document.
 2. **paged view** : approximate print preview, showing how many pages in a document.
