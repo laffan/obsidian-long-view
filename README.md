@@ -4,9 +4,9 @@ Three document views to help keep track of a too-long markdown documents : mini-
 
 
 ## Inline Flags
-All three support a flagging syntax that is a slightly modified version of Obsidian's existing highlighter system.  In addition to the the double ==, add the flag name and colon (no spaces).  Flagged text can also be optionally broken down in to title and summary fragments by adding a pipe character. 
+All three views support a flagging syntax that is a slightly modified version of Obsidian's existing highlighter.  In addition to the the double ==, add the flag name and colon (no spaces).  Flagged text can also be optionally broken down in to title and summary fragments by adding a pipe character. 
 
-`==FLAG: short title | summary of content (optional)==`
+In practice, this looks like `==FLAG: short title | summary of content (optional)==`
 
 The built-in flags are:
 
@@ -14,7 +14,7 @@ The built-in flags are:
 - `==MISSING: message ==` → Red
 - `%% comment %%` → Gray
 
-But these can be added to in the options panel. 
+But these can be added to and given colors in the options panel. 
 
 
 ## Section Flags
@@ -32,7 +32,7 @@ You can also flag an enitre section by placing a callout directly under the head
 
 ## Command Palette Utilities
 
-Long View adds clipboard helpers that strip line flags, callout section flags, and Obsidian comments before copying:
+Long View adds clipboard helpers so flags aren't included in copied text:
 
 - `Long View: Copy document without flags` – Copies the entire note as plain text.
 - `Long View: Copy selection without flags` – Copies only the current selection as plain text.
