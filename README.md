@@ -1,6 +1,6 @@
 # Long View
 
-Three document views to help keep track of a too-long markdown documents : mini-map, paged and flags.
+Long View is an [Obsidian]((https://obsidian.md/) plugin to help keep track of long markdown documents. It is composed of three views : mini-map, paged and flags.
 
 
 ## Inline Flags
