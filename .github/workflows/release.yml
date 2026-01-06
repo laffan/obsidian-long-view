@@ -1,36 +1,28 @@
 name: Release Obsidian Plugin
-
 on:
   push:
     branches:
       - main
     paths:
       - "manifest.json"
-
 permissions:
   contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: "18"
-
       - name: Install dependencies
         run: npm install
-
       - name: Build
         run: npm run build
-
       - name: Get version
         id: version
         run: echo "version=$(node -p "require('./manifest.json').version")" >> $GITHUB_OUTPUT
-
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
