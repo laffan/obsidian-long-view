@@ -32,13 +32,13 @@ jobs:
         id: version
         run: echo "version=$(node -p "require('./manifest.json').version")" >> $GITHUB_OUTPUT
 
+      - name: Create zip
+        run: zip obsidian-long-view.zip main.js manifest.json styles.css
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.version }}
-          files: |
-            main.js
-            manifest.json
-            styles.css
+          files: obsidian-long-view.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
