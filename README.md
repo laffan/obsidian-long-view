@@ -6,7 +6,16 @@ Long View is an [Obsidian](https://obsidian.md/) plugin to help keep track of lo
 2. **paged view** : approximate print preview, showing how many pages in a document.
 3. **flag view** : a valut-wide list of flagged material with links.
 
-Long view supports two flagging systems:
+## Installation
+
+1. Download the zipped [release](https://github.com/laffan/obsidian-long-view/releases) file and unzip it. 
+2. In Obsidian, navigate to Settings > Community Plugins. 
+3. Click the folder icon above the "Installed plugins" list.  
+4. Drag the unzipped release in to "plugins" folder.
+5. Click the refresh icon above the "Installed plugins" list. 
+
+You should see the plugin. Follow the same steps to update. 
+
 
 ## Inline Flags
 All three views support a flagging syntax that is a slightly modified version of Obsidian's existing highlighter.  In addition to the the double ==, add the flag name and colon (no spaces).  Flagged text can also be optionally broken down in to title and summary fragments by adding a pipe character. 
@@ -44,15 +53,6 @@ Long View adds clipboard helpers so flags aren't included in copied text:
 - `Long View: Copy document without flags (HTML)` – Copies the whole note as HTML, suitable for rich-text pasting.
 - `Long View: Copy selection without flags (HTML)` – Copies the current selection as HTML.
 
-## Installation
-
-1. Download the zipped release file and unzip it. 
-2. In Obsidian, navigate to Settings > Community Plugins. 
-3. Click the folder icon above the "Installed plugins" list.  
-4. Drag the unzipped release in to "plugins" folder.
-5. Click the refresh icon above the "Installed plugins" list. 
-
-You should see the plugin. Follow the same steps to update. 
 
 ## License
 
